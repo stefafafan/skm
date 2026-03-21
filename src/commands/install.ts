@@ -7,6 +7,7 @@ import { pathExists, removeIfExists } from "../fs";
 import { hashDirectory } from "../hash";
 import { materializeSkill } from "../materialize";
 import { readLockfile, readManifest, writeLockfile } from "../manifest";
+import { type CliResult, type CliSkillSummary } from "../output";
 import { resolveScope } from "../scope";
 import { defaultRequestedRef, fetchSkillToTempDir, parseSource } from "../source";
 import { storePath, storeSkill } from "../store";
@@ -17,7 +18,7 @@ export async function runInstallCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   githubBaseUrl?: string;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -27,6 +28,7 @@ export async function runInstallCommand(options: {
   const manifest = await readManifest(scope.manifestPath);
   const lockfile = await readLockfile(scope.lockfilePath);
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "skm-install-"));
+  const reconciledSkills: CliSkillSummary[] = [];
 
   try {
     for (const name of Object.keys(lockfile.skills)) {
@@ -64,6 +66,14 @@ export async function runInstallCommand(options: {
           resolved: lockEntry.resolved,
           strategy: entry.strategy ?? "wrap",
         });
+        reconciledSkills.push({
+          name: canonicalName,
+          status: "installed",
+          source: entry.source,
+          requested: requestedRef,
+          resolved: lockEntry.resolved,
+          integrity,
+        });
         continue;
       }
 
@@ -95,10 +105,24 @@ export async function runInstallCommand(options: {
         resolved: lockEntry.resolved,
         strategy: entry.strategy ?? "wrap",
       });
+      reconciledSkills.push({
+        name: canonicalName,
+        status: "installed",
+        source: entry.source,
+        requested: requestedRef,
+        resolved: lockEntry.resolved,
+        integrity,
+      });
     }
 
     await writeLockfile(scope.lockfilePath, lockfile);
-    return `Installed ${Object.keys(manifest.skills).length} skill(s) for ${scope.kind} scope`;
+    return {
+      kind: "summary",
+      command: "install",
+      scope: scope.kind,
+      summary: `Installed ${Object.keys(manifest.skills).length} skill(s) for ${scope.kind} scope`,
+      skills: reconciledSkills,
+    };
   } finally {
     await removeIfExists(tempRoot);
   }

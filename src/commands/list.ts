@@ -1,4 +1,5 @@
 import { mergeSkillState, readLockfile, readManifest, ResolvedSkillEntry } from "../manifest";
+import { type CliListResult, type CliListRow } from "../output";
 import { findProjectRoot, globalScope, projectScope, resolveScope } from "../scope";
 
 interface ListedSkill {
@@ -13,29 +14,25 @@ export async function runListCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   all: boolean;
-}): Promise<string> {
+}): Promise<CliListResult> {
   const listedSkills = await collectSkills(options);
   const projectNames = new Set(
     listedSkills.filter((skill) => skill.scope === "project").map((skill) => skill.name),
   );
-  const lines = ["name\tscope\tsource\trequested\tresolved\teffective"];
+  const rows: CliListRow[] = listedSkills.map((skill) => ({
+    name: skill.name,
+    scope: skill.scope,
+    source: skill.entry.source,
+    requested: skill.entry.requested,
+    resolved: skill.entry.resolved,
+    effective: skill.scope === "global" && projectNames.has(skill.name) ? "overridden" : "active",
+  }));
 
-  for (const skill of listedSkills) {
-    const effective =
-      skill.scope === "global" && projectNames.has(skill.name) ? "overridden" : "active";
-    lines.push(
-      [
-        skill.name,
-        skill.scope,
-        skill.entry.source,
-        skill.entry.requested ?? "",
-        skill.entry.resolved,
-        effective,
-      ].join("\t"),
-    );
-  }
-
-  return `${lines.join("\n")}\n`;
+  return {
+    kind: "list",
+    all: options.all,
+    rows,
+  };
 }
 
 async function collectSkills(options: {

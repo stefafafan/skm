@@ -5,6 +5,7 @@ import path from "node:path";
 import { SkmError } from "../errors";
 import { hashDirectory } from "../hash";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
+import { type CliResult, type CliSkillSummary } from "../output";
 import { resolveScope } from "../scope";
 import {
   canonicalTreeUrl,
@@ -28,7 +29,7 @@ export async function runAddCommand(options: {
   requestedRef?: string;
   strategy?: "wrap" | "link" | "copy";
   githubBaseUrl?: string;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -72,11 +73,17 @@ export async function runAddCommand(options: {
       }
 
       const strategy = options.strategy ?? "wrap";
+      const addedSkills: CliSkillSummary[] = [];
       for (const discoveredSkill of discoveredSkills) {
         const integrity = await hashDirectory(discoveredSkill.absoluteDir);
         const storeDir = await storeSkill(scope.storeDir, discoveredSkill.absoluteDir, integrity);
+        const canonicalSource = canonicalTreeUrl(
+          parsedSource,
+          requestedRef,
+          discoveredSkill.relativeDir,
+        );
         manifest.skills[discoveredSkill.canonicalName] = {
-          source: canonicalTreeUrl(parsedSource, requestedRef, discoveredSkill.relativeDir),
+          source: canonicalSource,
           requested: requestedRef,
           strategy,
         };
@@ -92,11 +99,28 @@ export async function runAddCommand(options: {
           resolved: checkedOut.resolved,
           strategy,
         });
+        addedSkills.push({
+          name: discoveredSkill.canonicalName,
+          status: "added",
+          source: canonicalSource,
+          requested: requestedRef,
+          resolved: checkedOut.resolved,
+        });
       }
 
       await writeManifest(scope.manifestPath, manifest);
       await writeLockfile(scope.lockfilePath, lockfile);
-      return `Added ${discoveredSkills.length} skill(s) to ${scope.kind} scope`;
+      return {
+        kind: "summary",
+        command: "add",
+        scope: scope.kind,
+        summary: `Added ${discoveredSkills.length} skill(s) to ${scope.kind} scope`,
+        details: [
+          { label: "source", value: options.source },
+          { label: "requested", value: requestedRef },
+        ],
+        skills: addedSkills,
+      };
     }
 
     const fetched = await fetchSkillToTempDir(
@@ -130,7 +154,27 @@ export async function runAddCommand(options: {
       resolved: fetched.resolved,
       strategy,
     });
-    return `Added ${canonicalName} to ${scope.kind} scope`;
+    return {
+      kind: "summary",
+      command: "add",
+      scope: scope.kind,
+      summary: `Added ${canonicalName} to ${scope.kind} scope`,
+      details: [
+        { label: "source", value: options.source },
+        { label: "requested", value: requestedRef },
+        { label: "strategy", value: strategy },
+      ],
+      skills: [
+        {
+          name: canonicalName,
+          status: "added",
+          source: options.source,
+          requested: requestedRef,
+          resolved: fetched.resolved,
+          integrity,
+        },
+      ],
+    };
   } finally {
     await removeIfExists(tempRoot);
   }

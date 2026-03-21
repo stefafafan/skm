@@ -7,6 +7,8 @@ import { runRenameCommand } from "./commands/rename";
 import { runRemoveCommand } from "./commands/remove";
 import { runUpdateCommand } from "./commands/update";
 import { SkmError, isSkmError } from "./errors";
+import { renderCliResultAsText, type CliResult } from "./output";
+import { renderCliResultWithInk } from "./ui/render";
 
 interface ParsedCli {
   command?: string;
@@ -20,16 +22,26 @@ interface ParsedCli {
 
 export async function main(
   argv: string[],
-  context?: { cwd?: string; env?: NodeJS.ProcessEnv },
+  context?: {
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+    stdoutIsTTY?: boolean;
+    stdoutColumns?: number;
+  },
 ): Promise<number> {
   const parsed = parseArgv(argv);
   const cwd = context?.cwd ?? process.cwd();
   const env = context?.env ?? process.env;
+  const stdoutIsTTY = context?.stdoutIsTTY ?? process.stdout.isTTY ?? false;
+  const stdoutColumns = context?.stdoutColumns ?? process.stdout.columns;
 
   try {
     const output = await dispatch(parsed, cwd, env);
     if (output) {
-      process.stdout.write(output.endsWith("\n") ? output : `${output}\n`);
+      const renderedOutput = stdoutIsTTY
+        ? await renderCliResultWithInk(output, { columns: stdoutColumns })
+        : renderCliResultAsText(output);
+      process.stdout.write(renderedOutput.endsWith("\n") ? renderedOutput : `${renderedOutput}\n`);
     }
     return 0;
   } catch (error) {
@@ -92,7 +104,11 @@ function parseArgv(argv: string[]): ParsedCli {
   return parsed;
 }
 
-async function dispatch(parsed: ParsedCli, cwd: string, env: NodeJS.ProcessEnv): Promise<string> {
+async function dispatch(
+  parsed: ParsedCli,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+): Promise<CliResult> {
   if (!parsed.command) {
     throw new SkmError("Usage: skm <init|add|remove|rename|install|update|list|inspect>", 2);
   }

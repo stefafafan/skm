@@ -3,6 +3,7 @@ import path from "node:path";
 import { SkmError } from "../errors";
 import { removeIfExists } from "../fs";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
+import { type CliResult } from "../output";
 import { resolveScope } from "../scope";
 
 export async function runRemoveCommand(options: {
@@ -11,7 +12,7 @@ export async function runRemoveCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   canonicalName: string;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -28,5 +29,11 @@ export async function runRemoveCommand(options: {
   await writeManifest(scope.manifestPath, manifest);
   await writeLockfile(scope.lockfilePath, lockfile);
   await removeIfExists(path.join(scope.generatedSkillsDir, options.canonicalName));
-  return `Removed ${options.canonicalName} from ${scope.kind} scope`;
+  return {
+    kind: "summary",
+    command: "remove",
+    scope: scope.kind,
+    summary: `Removed ${options.canonicalName} from ${scope.kind} scope`,
+    skills: [{ name: options.canonicalName, status: "removed" }],
+  };
 }

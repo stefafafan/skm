@@ -3,6 +3,7 @@ import path from "node:path";
 import { SkmError } from "../errors";
 import { materializeSkill } from "../materialize";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
+import { type CliResult } from "../output";
 import { resolveScope } from "../scope";
 import { storePath } from "../store";
 import { removeIfExists } from "../fs";
@@ -14,7 +15,7 @@ export async function runRenameCommand(options: {
   scope?: "global" | "project";
   oldName: string;
   newName: string;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -52,5 +53,21 @@ export async function runRenameCommand(options: {
   });
   await removeIfExists(path.join(scope.generatedSkillsDir, options.oldName));
 
-  return `Renamed ${options.oldName} to ${options.newName} in ${scope.kind} scope`;
+  return {
+    kind: "summary",
+    command: "rename",
+    scope: scope.kind,
+    summary: `Renamed ${options.oldName} to ${options.newName} in ${scope.kind} scope`,
+    skills: [
+      {
+        name: options.newName,
+        previousName: options.oldName,
+        status: "renamed",
+        source: manifestEntry.source,
+        requested: manifestEntry.requested,
+        resolved: lockEntry.resolved,
+        integrity: lockEntry.integrity,
+      },
+    ],
+  };
 }

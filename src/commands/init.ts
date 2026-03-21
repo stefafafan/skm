@@ -1,4 +1,5 @@
 import { initLockfile, initManifest } from "../manifest";
+import { type CliResult } from "../output";
 import { resolveScope } from "../scope";
 
 export async function runInitCommand(options: {
@@ -7,7 +8,7 @@ export async function runInitCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   force: boolean;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope =
     options.scope === "global"
       ? await resolveScope({
@@ -26,5 +27,14 @@ export async function runInitCommand(options: {
 
   await initManifest(scope.manifestPath, options.force);
   await initLockfile(scope.lockfilePath, options.force);
-  return `Initialized ${scope.kind} manifest at ${scope.manifestPath}`;
+  return {
+    kind: "summary",
+    command: "init",
+    scope: scope.kind,
+    summary: `Initialized ${scope.kind} manifest at ${scope.manifestPath}`,
+    details: [
+      { label: "manifest", value: scope.manifestPath },
+      { label: "lockfile", value: scope.lockfilePath },
+    ],
+  } satisfies CliResult;
 }

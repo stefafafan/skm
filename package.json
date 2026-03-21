@@ -29,8 +29,14 @@
     "test": "pnpm run build && node --test \"dist/test/**/*.test.js\"",
     "prepublishOnly": "pnpm test"
   },
+  "dependencies": {
+    "ink": "^6.8.0",
+    "react": "^19.2.4"
+  },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "@types/react": "^19.2.14",
+    "ink-testing-library": "^4.0.0",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "typescript": "^5.9.2"

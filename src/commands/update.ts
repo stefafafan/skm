@@ -7,6 +7,7 @@ import { removeIfExists } from "../fs";
 import { hashDirectory } from "../hash";
 import { materializeSkill } from "../materialize";
 import { readLockfile, readManifest, writeLockfile } from "../manifest";
+import { type CliResult, type CliSkillSummary } from "../output";
 import { resolveScope } from "../scope";
 import { defaultRequestedRef, fetchSkillToTempDir, isFixedRef, parseSource } from "../source";
 import { storeSkill } from "../store";
@@ -19,7 +20,7 @@ export async function runUpdateCommand(options: {
   canonicalName?: string;
   force: boolean;
   githubBaseUrl?: string;
-}): Promise<string> {
+}): Promise<CliResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -30,6 +31,7 @@ export async function runUpdateCommand(options: {
   const lockfile = await readLockfile(scope.lockfilePath);
   const names = options.canonicalName ? [options.canonicalName] : Object.keys(manifest.skills);
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "skm-update-"));
+  const updatedSkills: CliSkillSummary[] = [];
 
   try {
     let updatedCount = 0;
@@ -44,6 +46,14 @@ export async function runUpdateCommand(options: {
       }
       const requestedRef = entry.requested ?? defaultRequestedRef(parseSource(entry.source));
       if (isFixedRef(requestedRef) && !options.force) {
+        updatedSkills.push({
+          name,
+          status: "skipped",
+          source: entry.source,
+          requested: requestedRef,
+          resolved: lockEntry.resolved,
+          integrity: lockEntry.integrity,
+        });
         continue;
       }
       const fetched = await fetchSkillToTempDir(
@@ -66,10 +76,24 @@ export async function runUpdateCommand(options: {
         resolved: lockEntry.resolved,
         strategy: entry.strategy ?? "wrap",
       });
+      updatedSkills.push({
+        name,
+        status: "updated",
+        source: entry.source,
+        requested: requestedRef,
+        resolved: lockEntry.resolved,
+        integrity,
+      });
       updatedCount += 1;
     }
     await writeLockfile(scope.lockfilePath, lockfile);
-    return `Updated ${updatedCount} skill(s) in ${scope.kind} scope`;
+    return {
+      kind: "summary",
+      command: "update",
+      scope: scope.kind,
+      summary: `Updated ${updatedCount} skill(s) in ${scope.kind} scope`,
+      skills: updatedSkills,
+    };
   } finally {
     await removeIfExists(tempRoot);
   }
