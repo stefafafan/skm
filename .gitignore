@@ -3,5 +3,8 @@ node_modules
 .pnpm-store
 .skm
 .agents
+
+# These are ignored because skm itself does not need skills to be installed, and are confusing to have in the repository.
+# For actual usage of skm, these files should be committed to the repository.
 skills.json
 skills.lock.json
