@@ -98,8 +98,8 @@ export async function createGitHubRepoFixture(skills: RepoSkillFile[]): Promise<
   }
 
   git(["init", "-b", "main"], workspaceRoot);
-  git(["config", "user.name", "Codex"], workspaceRoot);
-  git(["config", "user.email", "codex@example.com"], workspaceRoot);
+  git(["config", "user.name", "cat"], workspaceRoot);
+  git(["config", "user.email", "cat@example.com"], workspaceRoot);
   git(["add", "."], workspaceRoot);
   git(["commit", "-m", "initial"], workspaceRoot);
   git(["init", "--bare", bareRepo], root);
