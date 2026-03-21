@@ -42,3 +42,28 @@ test("resolveScope falls back to global scope when there is no project manifest"
   assert.equal(scope.lockfilePath, path.join(root, "home", ".config", "skm", "skills.lock.json"));
   assert.equal(scope.generatedSkillsDir, path.join(root, "home", ".agents", "skills"));
 });
+
+test("resolveScope ignores ambient XDG_CONFIG_HOME unless it is passed explicitly", async () => {
+  const root = await createTempDir("skm-scope-");
+  const cwd = path.join(root, "workspace");
+  const previousXdgConfigHome = process.env.XDG_CONFIG_HOME;
+  await mkdir(cwd, { recursive: true });
+  process.env.XDG_CONFIG_HOME = path.join(root, "ambient-xdg");
+
+  try {
+    const scope = await resolveScope({
+      cwd,
+      homeDir: path.join(root, "home"),
+    });
+
+    assert.equal(scope.kind, "global");
+    assert.equal(scope.manifestPath, path.join(root, "home", ".config", "skm", "skills.json"));
+    assert.equal(scope.lockfilePath, path.join(root, "home", ".config", "skm", "skills.lock.json"));
+  } finally {
+    if (previousXdgConfigHome === undefined) {
+      delete process.env.XDG_CONFIG_HOME;
+    } else {
+      process.env.XDG_CONFIG_HOME = previousXdgConfigHome;
+    }
+  }
+});

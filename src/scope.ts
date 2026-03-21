@@ -65,10 +65,7 @@ export async function findProjectRoot(startDir: string): Promise<string | undefi
   }
 }
 
-export function globalScope(
-  homeDir: string,
-  xdgConfigHome = process.env.XDG_CONFIG_HOME,
-): ScopePaths {
+export function globalScope(homeDir: string, xdgConfigHome?: string): ScopePaths {
   const configRoot = xdgConfigHome
     ? path.join(xdgConfigHome, "skm")
     : path.join(homeDir, ".config", "skm");
