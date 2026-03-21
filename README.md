@@ -1,121 +1,130 @@
 # skm
 
-`skm` is a small CLI for managing [Agent Skills](https://agentskills.io) for both project and global scopes.
+`skm` is a package manager of [Agent Skills](https://agentskills.io), supporting both project and global-level skills.
 
 > [!WARNING]
 > This package is in beta. There may be breaking changes.
 
 ## Motivation
 
-Agent Skills are convenient, but I have been wondering about the following two points:
+Agent Skills are convenient, but there are 2 points to consider:
 
-1. How should I actually manage my skills? Which version of each skill did I just download?
-2. I understand that agents check skill names for discovery--but each skill author uses different naming conventions. How can I organize them?
+1. Which version skill did I just download? How should I update them?
+2. People make skills with different naming conventions--should I rename them?
 
 `skm` solves these problems by storing metadata of installed skills and having the ability to alias skills with your favorite names.
 
-## Install
+## Installation
 
-From npm:
-
-```bash
-pnpm add -g @stefafafan/skm
-```
-
-With `npx`:
+### Globally
 
 ```bash
-npx @stefafafan/skm --help
+npm install -g @stefafafan/skm
 ```
 
-From source:
+### Run Directly
 
 ```bash
-pnpm install
-pnpm build
-node dist/src/cli.js --help
+npx @stefafafan/skm
 ```
 
-## Quick Start
+## Setup
 
-Project scope:
+### For projects
+
+Initialize a project with `skills.json` and `skills.lock.json`
 
 ```bash
 skm init --project
-skm add https://github.com/stefafafan/skills/tree/main/skills/commit-message-writer --project
-skm list --project
-skm inspect commit-message-writer --project
 ```
 
-Without a global install:
+Add your favorite skills.
 
 ```bash
-npx @stefafafan/skm init --project
-npx @stefafafan/skm list --project
+skm add https://github.com/stefafafan/skills --project
 ```
 
-Global scope:
+Rename a skill locally if you prefer a different key name.
+
+```bash
+skm rename pin-github-actions gha-pinner --project
+```
+
+Add and commit your files.
+
+```bash
+git add skills.json skills.lock.json
+git commit
+```
+
+### For global settings
+
+Basically the same, but with `--global`
 
 ```bash
 skm init --global
+```
+
+```bash
 skm add stefafafan/skills --global
-skm list --all
+```
+
+```bash
+skm list --global
 ```
 
 ## Commands
 
-- `skm init`
-- `skm add <source>`
-- `skm remove <name>`
-- `skm rename <old-name> <new-name>`
-- `skm install`
-- `skm update [name]`
-- `skm list`
-- `skm inspect <name>`
-
-Scope flags:
-
-- `--project`
-- `--global`
-
-When stdout is a TTY, `skm` renders richer command output with Ink. When output is piped or redirected, it falls back to plain text so scripting stays stable.
-
-For command help:
+Call `help` subcommand for more information.
 
 ```bash
-skm --help
-skm help add
-skm add --help
+skm help
 ```
 
-## Sources
+Show help for specific subcommands.
 
-Supported source formats:
+```bash
+skm help add
+```
 
-- GitHub path to the skill directory:
-  - `https://github.com/<owner>/<repo>/tree/<ref>/<path>`
-- GitHub repository shorthand:
-  - `<owner>/<repo>`
-- GitHub repository URL:
-  - `https://github.com/<owner>/<repo>`
+## Supported source formats
 
-Repo-wide imports discover every nested directory containing `SKILL.md`.
+Currently this tool assumes the skills are on GitHub.
 
-## Files
+```bash
+# Installing a skill in a specific path.
+skm add https://github.com/stefafafan/skills/tree/main/skills/pin-github-actions
 
-Project scope uses:
+# Installing all skills in a repository (shorthand)
+skm add stefafafan/skills
+
+# Installing all skills in a repository (full URL)
+skm add https://github.com/stefafafan/skills
+```
+
+Repository-wide imports discover every nested directory containing `SKILL.md`.
+
+## Metadata files used
+
+The following files are used by `skm`
 
 - `skills.json`
   - user-facing intent
 - `skills.lock.json`
-  - resolved commit and integrity data
+  - resolved commit hash and integrity data
 - `.skm/`
   - internal state and stored contents
 - `.agents/skills/`
-  - materialized runtime-visible skills
+  - the derived skills
 
 The intended manifest-first flow is:
 
 1. Change `skills.json` with `skm` commands or by editing it directly.
 2. Run `skm install --project`.
 3. Let `skills.lock.json` and `.agents/skills/` reconcile automatically.
+
+It is recommended to add the following to `.gitignore`
+
+```sh
+.skm
+```
