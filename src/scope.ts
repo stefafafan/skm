@@ -1,0 +1,96 @@
+import path from "node:path";
+
+import { SkmError } from "./errors";
+import { pathExists } from "./fs";
+
+export type ScopeKind = "global" | "project";
+
+export interface ScopePaths {
+  kind: ScopeKind;
+  rootDir: string;
+  manifestPath: string;
+  lockfilePath: string;
+  stateDir: string;
+  storeDir: string;
+  generatedSkillsDir: string;
+}
+
+export interface ResolveScopeOptions {
+  cwd: string;
+  homeDir?: string;
+  explicitScope?: ScopeKind;
+  allowCreateProject?: boolean;
+  xdgConfigHome?: string;
+}
+
+export async function resolveScope(options: ResolveScopeOptions): Promise<ScopePaths> {
+  const homeDir = options.homeDir ?? process.env.HOME;
+  if (!homeDir) {
+    throw new SkmError("HOME is required to resolve scope", 2);
+  }
+
+  if (options.explicitScope === "project") {
+    const projectRoot =
+      (await findProjectRoot(options.cwd)) ??
+      (options.allowCreateProject ? options.cwd : undefined);
+    if (!projectRoot) {
+      throw new SkmError("Project scope requested but no skills.json was found", 2);
+    }
+    return projectScope(projectRoot);
+  }
+
+  if (options.explicitScope === "global") {
+    return globalScope(homeDir, options.xdgConfigHome);
+  }
+
+  const discoveredProjectRoot = await findProjectRoot(options.cwd);
+  if (discoveredProjectRoot) {
+    return projectScope(discoveredProjectRoot);
+  }
+  return globalScope(homeDir, options.xdgConfigHome);
+}
+
+export async function findProjectRoot(startDir: string): Promise<string | undefined> {
+  let currentDir = path.resolve(startDir);
+
+  while (true) {
+    if (await pathExists(path.join(currentDir, "skills.json"))) {
+      return currentDir;
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return undefined;
+    }
+    currentDir = parentDir;
+  }
+}
+
+export function globalScope(
+  homeDir: string,
+  xdgConfigHome = process.env.XDG_CONFIG_HOME,
+): ScopePaths {
+  const configRoot = xdgConfigHome
+    ? path.join(xdgConfigHome, "skm")
+    : path.join(homeDir, ".config", "skm");
+  return {
+    kind: "global",
+    rootDir: configRoot,
+    manifestPath: path.join(configRoot, "skills.json"),
+    lockfilePath: path.join(configRoot, "skills.lock.json"),
+    stateDir: configRoot,
+    storeDir: path.join(configRoot, "store"),
+    generatedSkillsDir: path.join(homeDir, ".agents", "skills"),
+  };
+}
+
+export function projectScope(projectRoot: string): ScopePaths {
+  return {
+    kind: "project",
+    rootDir: projectRoot,
+    manifestPath: path.join(projectRoot, "skills.json"),
+    lockfilePath: path.join(projectRoot, "skills.lock.json"),
+    stateDir: path.join(projectRoot, ".skm"),
+    storeDir: path.join(projectRoot, ".skm", "store"),
+    generatedSkillsDir: path.join(projectRoot, ".agents", "skills"),
+  };
+}
