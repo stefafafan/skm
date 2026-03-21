@@ -50,6 +50,8 @@ function createResultView(ink: InkModule, result: CliResult): React.ReactNode {
       return createListView(ink, result);
     case "inspect":
       return createInspectView(ink, result);
+    case "help":
+      return createHelpView(ink, result);
   }
 }
 
@@ -121,6 +123,25 @@ function createInspectView(
     React.createElement(Text, { dimColor: true }, `scope: ${result.scope}`),
     React.createElement(Text, { bold: true }, result.name),
     ...result.details.map((detail, index) => createDetailRow(ink, detail, `inspect-${index}`)),
+  );
+}
+
+function createHelpView(
+  ink: InkModule,
+  result: Extract<CliResult, { kind: "help" }>,
+): React.ReactNode {
+  const { Box, Text } = ink;
+  return React.createElement(
+    Box,
+    { flexDirection: "column" },
+    React.createElement(Text, { color: "green", bold: true }, result.title),
+    React.createElement(Text, null, `Usage: ${result.usage}`),
+    ...result.sections.flatMap((section, index) => [
+      React.createElement(Text, { key: `section-title-${index}`, bold: true }, section.title),
+      ...section.lines.map((line, lineIndex) =>
+        React.createElement(Text, { key: `section-line-${index}-${lineIndex}` }, line),
+      ),
+    ]),
   );
 }
 

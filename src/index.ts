@@ -16,6 +16,7 @@ interface ParsedCli {
   scope?: "global" | "project";
   all: boolean;
   force: boolean;
+  help: boolean;
   alias?: string;
   ref?: string;
 }
@@ -60,6 +61,7 @@ function parseArgv(argv: string[]): ParsedCli {
     positional: [],
     all: false,
     force: false,
+    help: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -69,6 +71,10 @@ function parseArgv(argv: string[]): ParsedCli {
     }
     if (token === "--global") {
       parsed.scope = "global";
+      continue;
+    }
+    if (token === "--help" || token === "-h") {
+      parsed.help = true;
       continue;
     }
     if (token === "--project") {
@@ -109,8 +115,14 @@ async function dispatch(
   cwd: string,
   env: NodeJS.ProcessEnv,
 ): Promise<CliResult> {
+  if (parsed.command === "help") {
+    return buildHelpResult(parsed.positional[0]);
+  }
+  if (parsed.help) {
+    return buildHelpResult(parsed.command);
+  }
   if (!parsed.command) {
-    throw new SkmError("Usage: skm <init|add|remove|rename|install|update|list|inspect>", 2);
+    return buildHelpResult();
   }
 
   const homeDir = env.HOME;
@@ -202,5 +214,137 @@ async function dispatch(
       });
     default:
       throw new SkmError(`Unknown command: ${parsed.command}`, 2);
+  }
+}
+
+function buildHelpResult(command?: string): CliResult {
+  switch (command) {
+    case "add":
+      return {
+        kind: "help",
+        title: "skm add",
+        usage: "skm add <source> [--project|--global] [--as <name>] [--ref <ref>]",
+        sections: [
+          {
+            title: "Sources",
+            lines: [
+              "- GitHub tree URL: https://github.com/<owner>/<repo>/tree/<ref>/<path>",
+              "- GitHub repository shorthand: <owner>/<repo>",
+              "- GitHub repository URL: https://github.com/<owner>/<repo>",
+            ],
+          },
+          {
+            title: "Options",
+            lines: [
+              "- --as <name>  Set the local skill name for single-skill imports",
+              "- --ref <ref>  Override the requested branch, tag, or commit",
+              "- --project    Use project scope",
+              "- --global     Use global scope",
+            ],
+          },
+        ],
+      };
+    case "init":
+      return {
+        kind: "help",
+        title: "skm init",
+        usage: "skm init [--project|--global] [--force]",
+        sections: [
+          {
+            title: "Options",
+            lines: [
+              "- --project  Initialize project scope",
+              "- --global   Initialize global scope",
+              "- --force    Rewrite existing manifest and lockfile",
+            ],
+          },
+        ],
+      };
+    case "remove":
+      return {
+        kind: "help",
+        title: "skm remove",
+        usage: "skm remove <name> [--project|--global]",
+        sections: [{ title: "Options", lines: ["- --project", "- --global"] }],
+      };
+    case "rename":
+      return {
+        kind: "help",
+        title: "skm rename",
+        usage: "skm rename <old-name> <new-name> [--project|--global]",
+        sections: [{ title: "Options", lines: ["- --project", "- --global"] }],
+      };
+    case "install":
+      return {
+        kind: "help",
+        title: "skm install",
+        usage: "skm install [--project|--global]",
+        sections: [{ title: "Options", lines: ["- --project", "- --global"] }],
+      };
+    case "update":
+      return {
+        kind: "help",
+        title: "skm update",
+        usage: "skm update [name] [--project|--global] [--force]",
+        sections: [
+          {
+            title: "Options",
+            lines: [
+              "- --project",
+              "- --global",
+              "- --force    Refresh even when the requested ref is already a fixed commit",
+            ],
+          },
+        ],
+      };
+    case "list":
+      return {
+        kind: "help",
+        title: "skm list",
+        usage: "skm list [--project|--global] [--all]",
+        sections: [
+          {
+            title: "Options",
+            lines: [
+              "- --all      Show both project and global entries when available",
+              "- --project",
+              "- --global",
+            ],
+          },
+        ],
+      };
+    case "inspect":
+      return {
+        kind: "help",
+        title: "skm inspect",
+        usage: "skm inspect <name> [--project|--global]",
+        sections: [{ title: "Options", lines: ["- --project", "- --global"] }],
+      };
+    default:
+      return {
+        kind: "help",
+        title: "skm",
+        usage: "skm <command>",
+        sections: [
+          {
+            title: "Commands",
+            lines: [
+              "- init",
+              "- add <source>",
+              "- remove <name>",
+              "- rename <old-name> <new-name>",
+              "- install",
+              "- update [name]",
+              "- list",
+              "- inspect <name>",
+              "- help [command]",
+            ],
+          },
+          {
+            title: "Global options",
+            lines: ["- --help, -h", "- --project", "- --global"],
+          },
+        ],
+      };
   }
 }

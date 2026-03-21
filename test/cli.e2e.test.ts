@@ -12,6 +12,52 @@ import {
   writeJsonFile,
 } from "./helpers/fixture";
 
+test("skm --help prints top-level usage", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["--help"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Usage: skm <command>/i);
+  assert.match(result.stdout, /Commands:/i);
+  assert.match(result.stdout, /add <source>/i);
+});
+
+test("skm help add prints command-specific usage", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["help", "add"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Usage: skm add <source>/i);
+  assert.match(result.stdout, /GitHub repository shorthand/i);
+  assert.match(result.stdout, /--as <name>/i);
+});
+
+test("skm add --help prints command-specific usage", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["add", "--help"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /Usage: skm add <source>/i);
+});
+
 test("skm init creates a project manifest", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");

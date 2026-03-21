@@ -14,6 +14,54 @@ Agent Skills are convenient, but I have been wondering about the following two p
 
 `skm` solves these problems by storing metadata of installed skills and having the ability to alias skills with your favorite names.
 
+## Install
+
+From npm:
+
+```bash
+pnpm add -g @stefafafan/skm
+```
+
+With `npx`:
+
+```bash
+npx @stefafafan/skm --help
+```
+
+From source:
+
+```bash
+pnpm install
+pnpm build
+node dist/src/cli.js --help
+```
+
+## Quick Start
+
+Project scope:
+
+```bash
+skm init --project
+skm add https://github.com/stefafafan/skills/tree/main/skills/commit-message-writer --project
+skm list --project
+skm inspect commit-message-writer --project
+```
+
+Without a global install:
+
+```bash
+npx @stefafafan/skm init --project
+npx @stefafafan/skm list --project
+```
+
+Global scope:
+
+```bash
+skm init --global
+skm add stefafafan/skills --global
+skm list --all
+```
+
 ## Commands
 
 - `skm init`
@@ -31,6 +79,14 @@ Scope flags:
 - `--global`
 
 When stdout is a TTY, `skm` renders richer command output with Ink. When output is piped or redirected, it falls back to plain text so scripting stays stable.
+
+For command help:
+
+```bash
+skm --help
+skm help add
+skm add --help
+```
 
 ## Sources
 
