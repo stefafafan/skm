@@ -1,0 +1,7 @@
+dist
+node_modules
+.pnpm-store
+.skm
+.agents
+skills.json
+skills.lock.json
