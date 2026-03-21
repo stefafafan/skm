@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { SkmError } from "../errors";
 import { mergeSkillState, readLockfile, readManifest } from "../manifest";
+import { type CliInspectResult } from "../output";
 import { findProjectRoot, projectScope, resolveScope } from "../scope";
 
 export async function runInspectCommand(options: {
@@ -10,7 +11,7 @@ export async function runInspectCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   canonicalName: string;
-}): Promise<string> {
+}): Promise<CliInspectResult> {
   const scope = await resolveScope({
     cwd: options.cwd,
     homeDir: options.homeDir,
@@ -39,16 +40,23 @@ export async function runInspectCommand(options: {
     }
   }
 
-  return [
-    `canonical local name: ${options.canonicalName}`,
-    `scope: ${scope.kind}`,
-    `source: ${entry.source}`,
-    `requested ref: ${entry.requested ?? ""}`,
-    `resolved commit: ${entry.resolved}`,
-    `integrity hash: ${entry.integrity ?? ""}`,
-    `materialized path: ${path.join(scope.generatedSkillsDir, options.canonicalName)}`,
-    `strategy: ${entry.strategy ?? "wrap"}`,
-    `overridden by project skill: ${overriddenByProjectSkill}`,
-    "",
-  ].join("\n");
+  return {
+    kind: "inspect",
+    name: options.canonicalName,
+    scope: scope.kind,
+    details: [
+      { label: "canonical local name", value: options.canonicalName },
+      { label: "scope", value: scope.kind },
+      { label: "source", value: entry.source },
+      { label: "requested ref", value: entry.requested ?? "" },
+      { label: "resolved commit", value: entry.resolved ?? "" },
+      { label: "integrity hash", value: entry.integrity ?? "" },
+      {
+        label: "materialized path",
+        value: path.join(scope.generatedSkillsDir, options.canonicalName),
+      },
+      { label: "strategy", value: entry.strategy ?? "wrap" },
+      { label: "overridden by project skill", value: overriddenByProjectSkill },
+    ],
+  };
 }

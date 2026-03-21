@@ -30,6 +30,8 @@ Scope flags:
 - `--project`
 - `--global`
 
+When stdout is a TTY, `skm` renders richer command output with Ink. When output is piped or redirected, it falls back to plain text so scripting stays stable.
+
 ## Sources
 
 Supported source formats:
