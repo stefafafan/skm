@@ -3,10 +3,17 @@
   "version": "0.1.0",
   "private": false,
   "description": "Agents skills manager",
+  "keywords": [
+    "agents",
+    "cli",
+    "developer-tools",
+    "skills"
+  ],
   "homepage": "https://github.com/stefafafan/skm",
   "bugs": {
     "url": "https://github.com/stefafafan/skm/issues"
   },
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stefafafan/skm.git"
