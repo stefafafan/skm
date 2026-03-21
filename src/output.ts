@@ -46,7 +46,19 @@ export interface CliInspectResult {
   details: CliDetail[];
 }
 
-export type CliResult = CliSummaryResult | CliListResult | CliInspectResult;
+export interface CliHelpSection {
+  title: string;
+  lines: string[];
+}
+
+export interface CliHelpResult {
+  kind: "help";
+  title: string;
+  usage: string;
+  sections: CliHelpSection[];
+}
+
+export type CliResult = CliSummaryResult | CliListResult | CliInspectResult | CliHelpResult;
 
 export function renderCliResultAsText(result: CliResult): string {
   switch (result.kind) {
@@ -70,5 +82,12 @@ export function renderCliResultAsText(result: CliResult): string {
     }
     case "inspect":
       return `${result.details.map((detail) => `${detail.label}: ${detail.value}`).join("\n")}\n\n`;
+    case "help": {
+      const lines = [result.title, "", `Usage: ${result.usage}`];
+      for (const section of result.sections) {
+        lines.push("", `${section.title}:`, ...section.lines);
+      }
+      return `${lines.join("\n")}\n`;
+    }
   }
 }

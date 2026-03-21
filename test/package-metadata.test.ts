@@ -17,7 +17,7 @@ test("package metadata is ready for manual public publish under @stefafafan/skm"
 
   assert.equal(packageJson.name, "@stefafafan/skm");
   assert.equal(packageJson.private, false);
-  assert.deepEqual(packageJson.files, ["dist/**/*"]);
+  assert.deepEqual(packageJson.files, ["dist/src/**/*", "LICENSE", "README.md"]);
   assert.equal(packageJson.publishConfig?.access, "public");
   assert.equal(packageJson.repository?.type, "git");
   assert.equal(packageJson.repository?.url, "git+https://github.com/stefafafan/skm.git");
