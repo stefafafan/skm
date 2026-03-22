@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { runAddCommand } from "./commands/add";
 import { runInitCommand } from "./commands/init";
 import { runInspectCommand } from "./commands/inspect";
@@ -17,6 +20,7 @@ interface ParsedCli {
   all: boolean;
   force: boolean;
   help: boolean;
+  version: boolean;
   alias?: string;
   ref?: string;
 }
@@ -62,6 +66,7 @@ function parseArgv(argv: string[]): ParsedCli {
     all: false,
     force: false,
     help: false,
+    version: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -75,6 +80,10 @@ function parseArgv(argv: string[]): ParsedCli {
     }
     if (token === "--help" || token === "-h") {
       parsed.help = true;
+      continue;
+    }
+    if (token === "--version" || token === "-v") {
+      parsed.version = true;
       continue;
     }
     if (token === "--project") {
@@ -117,6 +126,9 @@ async function dispatch(
 ): Promise<CliResult> {
   if (parsed.command === "help") {
     return buildHelpResult(parsed.positional[0]);
+  }
+  if (parsed.version) {
+    return buildVersionResult();
   }
   if (parsed.help) {
     return buildHelpResult(parsed.command);
@@ -212,6 +224,8 @@ async function dispatch(
         scope: parsed.scope,
         canonicalName: parsed.positional[0],
       });
+    case "version":
+      return buildVersionResult();
     default:
       throw new SkmError(`Unknown command: ${parsed.command}`, 2);
   }
@@ -219,6 +233,13 @@ async function dispatch(
 
 function buildHelpResult(command?: string): CliResult {
   switch (command) {
+    case "version":
+      return {
+        kind: "help",
+        title: "skm version",
+        usage: "skm version",
+        sections: [{ title: "Aliases", lines: ["- --version", "- -v"] }],
+      };
     case "add":
       return {
         kind: "help",
@@ -337,14 +358,40 @@ function buildHelpResult(command?: string): CliResult {
               "- update [name]",
               "- list",
               "- inspect <name>",
+              "- version",
               "- help [command]",
             ],
           },
           {
             title: "Global options",
-            lines: ["- --help, -h", "- --project", "- --global"],
+            lines: ["- --help, -h", "- --version, -v", "- --project", "- --global"],
           },
         ],
       };
   }
+}
+
+async function buildVersionResult(): Promise<CliResult> {
+  return {
+    kind: "version",
+    version: await readPackageVersion(),
+  };
+}
+
+let cachedPackageVersion: string | undefined;
+
+async function readPackageVersion(): Promise<string> {
+  if (cachedPackageVersion) {
+    return cachedPackageVersion;
+  }
+
+  const packageJsonPath = path.resolve(__dirname, "..", "..", "package.json");
+  const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8")) as {
+    version?: string;
+  };
+  if (!packageJson.version) {
+    throw new SkmError(`Missing version in ${packageJsonPath}`, 1);
+  }
+  cachedPackageVersion = packageJson.version;
+  return cachedPackageVersion;
 }

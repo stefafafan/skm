@@ -52,6 +52,8 @@ function createResultView(ink: InkModule, result: CliResult): React.ReactNode {
       return createInspectView(ink, result);
     case "help":
       return createHelpView(ink, result);
+    case "version":
+      return createVersionView(ink, result);
   }
 }
 
@@ -142,6 +144,19 @@ function createHelpView(
         React.createElement(Text, { key: `section-line-${index}-${lineIndex}` }, line),
       ),
     ]),
+  );
+}
+
+function createVersionView(
+  ink: InkModule,
+  result: Extract<CliResult, { kind: "version" }>,
+): React.ReactNode {
+  const { Box, Text } = ink;
+  return React.createElement(
+    Box,
+    { flexDirection: "column" },
+    React.createElement(Text, { color: "green", bold: true }, "skm"),
+    React.createElement(Text, null, result.version),
   );
 }
 
