@@ -75,10 +75,6 @@ skm init --global
 skm add stefafafan/skills --global
 ```
 
-```bash
-skm list --global
-```
-
 ## Commands
 
 Call `help` subcommand for more information.
