@@ -1,7 +1,6 @@
 {
   "name": "@stefafafan/skm",
   "version": "0.1.0",
-  "author": "stefafafan",
   "private": false,
   "description": "A package manager for AI Agent Skills. Supports installation, version management, and renaming of skills. Can be used for both global and project specific skill management.",
   "keywords": [
@@ -15,6 +14,7 @@
     "url": "https://github.com/stefafafan/skm/issues"
   },
   "license": "MIT",
+  "author": "stefafafan",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stefafafan/skm.git"

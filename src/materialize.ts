@@ -38,19 +38,6 @@ export async function materializeSkill(options: MaterializeSkillOptions): Promis
     throw new SkmError(`Materialized skill at ${outputDir} is missing SKILL.md`, 4);
   }
 
-  await writeFile(
-    path.join(outputDir, ".skm-meta.json"),
-    `${JSON.stringify(
-      {
-        source: options.manifestSource,
-        resolved: options.resolved,
-        strategy: options.strategy,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-
   return outputDir;
 }
 
