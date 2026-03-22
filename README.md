@@ -6,10 +6,10 @@
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
 
-![skm demo](demo.gif)
-
 > [!WARNING]
 > This package is in beta. There may be breaking changes.
+
+![skm demo](demo.gif)
 
 ## Motivation
 
