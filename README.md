@@ -1,4 +1,4 @@
-# skm
+# skm - A package manager for Agents Skills
 
 <a href="https://www.npmjs.com/package/@stefafafan/skm"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40stefafafan%2Fskm"></a>
 
