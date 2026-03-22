@@ -130,3 +130,11 @@ It is recommended to add the `.skm` directory to `.gitignore`.
 ```sh
 echo '.skm' >> .gitignore
 ```
+
+## FAQ
+
+### Q: My Coding Agent doesn't support `.agents/skills`
+
+It is a design decision to only support `.agents/skills` for `skm`.
+
+If you don't mind, you can use the workaround of symbolic links (e.g. make `.claude/skills` a symlink of `.agents/skills`).
