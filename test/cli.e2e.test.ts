@@ -58,6 +58,57 @@ test("skm add --help prints command-specific usage", async () => {
   assert.match(result.stdout, /Usage: skm add <source>/i);
 });
 
+test("skm version prints the package version", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const expected = await readJsonFile<{ version: string }>(
+    path.resolve(process.cwd(), "package.json"),
+  );
+  const result = runCli(["version"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout.trim(), expected.version);
+});
+
+test("skm --version prints the package version", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const expected = await readJsonFile<{ version: string }>(
+    path.resolve(process.cwd(), "package.json"),
+  );
+  const result = runCli(["--version"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout.trim(), expected.version);
+});
+
+test("skm -v prints the package version", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const expected = await readJsonFile<{ version: string }>(
+    path.resolve(process.cwd(), "package.json"),
+  );
+  const result = runCli(["-v"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout.trim(), expected.version);
+});
+
 test("skm init creates a project manifest", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");

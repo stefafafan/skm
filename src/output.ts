@@ -58,7 +58,17 @@ export interface CliHelpResult {
   sections: CliHelpSection[];
 }
 
-export type CliResult = CliSummaryResult | CliListResult | CliInspectResult | CliHelpResult;
+export interface CliVersionResult {
+  kind: "version";
+  version: string;
+}
+
+export type CliResult =
+  | CliSummaryResult
+  | CliListResult
+  | CliInspectResult
+  | CliHelpResult
+  | CliVersionResult;
 
 export function renderCliResultAsText(result: CliResult): string {
   switch (result.kind) {
@@ -89,5 +99,7 @@ export function renderCliResultAsText(result: CliResult): string {
       }
       return `${lines.join("\n")}\n`;
     }
+    case "version":
+      return `${result.version}\n`;
   }
 }
