@@ -2,7 +2,7 @@
   "name": "@stefafafan/skm",
   "version": "0.1.6",
   "private": false,
-  "description": "A tool for keeping AI Agent Skills under control for team development. Supports storing resolved commit hashes of skills for reproducibility and alias names for keeping names consistent. ",
+  "description": "A package manager for AI Agent Skills. Reproducible installs and consistent naming for teams.",
   "keywords": [
     "agents",
     "cli",
