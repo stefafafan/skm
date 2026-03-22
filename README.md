@@ -1,8 +1,9 @@
-# skm - A package manager for Agent Skills
+# skm - Keep Agent Skills Under Control for Team Development
 
 <a href="https://www.npmjs.com/package/@stefafafan/skm"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40stefafafan%2Fskm"></a>
 
-`skm` is a package manager of [Agent Skills](https://agentskills.io), supporting both project and global-level skills.
+`skm` helps keep [Agent Skills](https://agentskills.io) for projects under control.
+It stores resolved commit hashes for reproducibility and lets you alias skill names so teams can keep naming consistent, which matters because the skill `name` and `description` affect how agents trigger them.
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
 
@@ -18,7 +19,49 @@ Agent Skills are convenient, but there are 2 points to consider:
 1. Which version skill did I just download? How should I update them?
 2. People make skills with different naming conventions--should I rename them?
 
-`skm` solves these problems by storing metadata of installed skills and having the ability to alias skills with your favorite names.
+`skm` solves these problems by tracking exactly which commit of each skill was installed and by letting you rename skills locally without changing the upstream repository.
+
+## No skm vs With skm
+
+### No skm
+
+- Copy and paste skills manually in different ways.
+- No idea if upstream skills have updates.
+- No real naming convention ending up to hundreds of skills with random names.
+
+```text
+project/
+└── .agents/
+    └── skills/  <-- Files within this directory edited manually in many ways.
+        ├── commit-msg-helper/
+        │   └── SKILL.md
+        ├── stefans-best-skill/
+        │   └── SKILL.md
+        ├── infra-master/
+        │   └── SKILL.md
+        └── ultra_fast_coder_skill/ <-- Random named skills depending on skill author
+            └── SKILL.md
+```
+
+### With skm
+
+- Standardized way of installing/updating skills. `skills.json` shows a clear outline of managed skills.
+- `skills.lock.json` stores resolved commit hashes for reproducible installs.
+- `skm rename` lets projects keep consistent local skill names.
+
+```text
+project/
+├── skills.json      <-- This file is edited (via skm add, skm rename, etc.)
+├── skills.lock.json <-- Contains exact commit hash for each skill installed. Reproducible.
+└── .agents/
+    └── skills/
+        ├── commit-message-writer/
+        │   └── SKILL.md
+        ├── github-actions-pinner/
+        │   └── SKILL.md
+        └── web-security-reviewer/ <-- Skill renamed via skm, making things under-control.
+            └── SKILL.md
+```
 
 ## Installation
 
@@ -65,7 +108,7 @@ git commit
 
 ### For global settings
 
-Basically the same, but with `--global`
+You can use `skm` to manage global skills as well. Basically the same, but with `--global`
 
 ```bash
 skm init --global
