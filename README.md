@@ -9,6 +9,8 @@ See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examp
 > [!WARNING]
 > This package is in beta. There may be breaking changes.
 
+![skm demo](demo.gif)
+
 ## Motivation
 
 Agent Skills are convenient, but there are 2 points to consider:
@@ -73,10 +75,6 @@ skm init --global
 skm add stefafafan/skills --global
 ```
 
-```bash
-skm list --global
-```
-
 ## Commands
 
 Call `help` subcommand for more information.
@@ -132,3 +130,11 @@ It is recommended to add the `.skm` directory to `.gitignore`.
 ```sh
 echo '.skm' >> .gitignore
 ```
+
+## FAQ
+
+### Q: My Coding Agent doesn't support `.agents/skills`
+
+It is a design decision to only support `.agents/skills` for `skm`.
+
+If you don't mind, you can use the workaround of symbolic links (e.g. make `.claude/skills` a symlink of `.agents/skills`).
