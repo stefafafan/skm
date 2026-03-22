@@ -36,8 +36,7 @@
     "lint:fix": "oxlint --fix src test",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "test": "pnpm run build && node --test \"dist/test/**/*.test.js\"",
-    "prepublishOnly": "pnpm test"
+    "test": "pnpm run build && node --test \"dist/test/**/*.test.js\""
   },
   "dependencies": {
     "ink": "^6.8.0",
