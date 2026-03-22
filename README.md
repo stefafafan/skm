@@ -1,9 +1,9 @@
-# skm - Keep Agent Skills Under Control for Team Development
+# skm - A package manager for Agent Skills
 
 <a href="https://www.npmjs.com/package/@stefafafan/skm"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40stefafafan%2Fskm"></a>
 
-`skm` helps keep [Agent Skills](https://agentskills.io) for projects under control.
-It stores resolved commit hashes for reproducibility and lets you alias skill names so teams can keep naming consistent, which matters because the skill `name` and `description` affect how agents trigger them.
+`skm` is a package manager for [Agent Skills](https://agentskills.io).
+It pins skills to exact commit hashes for reproducible installs and lets teams alias skill names consistently.
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
 
@@ -14,20 +14,13 @@ See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examp
 
 ## Motivation
 
-Agent Skills are convenient, but there are 2 points to consider:
+Agent Skills are convenient, but currently have some downsides:
 
-1. Which version skill did I just download? How should I update them?
-2. People make skills with different naming conventions--should I rename them?
-
-`skm` solves these problems by tracking exactly which commit of each skill was installed and by letting you rename skills locally without changing the upstream repository.
-
-## No skm vs With skm
-
-### No skm
+### No `skm`
 
 - Copy and paste skills manually in different ways.
 - No idea if upstream skills have updates.
-- No real naming convention ending up to hundreds of skills with random names.
+- No naming convention, leading to inconsistent skill names across the team
 
 ```text
 project/
@@ -43,7 +36,7 @@ project/
             └── SKILL.md
 ```
 
-### With skm
+### With `skm`
 
 - Standardized way of installing/updating skills. `skills.json` shows a clear outline of managed skills.
 - `skills.lock.json` stores resolved commit hashes for reproducible installs.
@@ -149,35 +142,19 @@ skm add https://github.com/stefafafan/skills
 
 Repository-wide imports discover every nested directory containing `SKILL.md`.
 
-## Metadata files used
+## Files read/edited by `skm`
 
-The following files are used by `skm`
+The following files are used by `skm`:
 
-- `skills.json`
-  - user-facing intent
-- `skills.lock.json`
-  - resolved commit hash and integrity data
-- `.skm/`
-  - internal state and stored contents
-- `.agents/skills/`
-  - the derived skills
-
-The intended manifest-first flow is:
-
-1. Change `skills.json` with `skm` commands or by editing it directly.
-2. Run `skm install`.
-3. Let `skills.lock.json` and `.agents/skills/` reconcile automatically.
-
-It is recommended to add the `.skm` directory to `.gitignore`.
-
-```sh
-echo '.skm' >> .gitignore
-```
+| File               | Purpose                                                                 |
+| ------------------ | ----------------------------------------------------------------------- |
+| `skills.json`      | User-facing intent — what skills you want                               |
+| `skills.lock.json` | Resolved commit hashes for reproducible installs                        |
+| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`) |
+| `.agents/skills/`  | The derived skills, read by your coding agent                           |
 
 ## FAQ
 
 ### Q: My Coding Agent doesn't support `.agents/skills`
 
-It is a design decision to only support `.agents/skills` for `skm`.
-
-If you don't mind, you can use the workaround of symbolic links (e.g. make `.claude/skills` a symlink of `.agents/skills`).
+Although some agents support `.agents/skills`, there are still many agents that use different paths. Until the standard is more widely adopted, symbolic links are the recommended workaround (for example, making `.claude/skills` a symlink for `.agents/skills`).
