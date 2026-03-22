@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { materializeSkill } from "../src/materialize";
 import { createTempDir } from "./helpers/fixture";
@@ -42,4 +42,5 @@ test("materializeSkill wraps SKILL.md with the canonical name and preserves supp
     /https:\/\/example\.com\/example\/skills\/tree\/main\/skills\/hello-skill/,
   );
   assert.equal(copiedNote, "notes\n");
+  await assert.rejects(access(path.join(outputDir, ".skm-meta.json")));
 });
