@@ -1,8 +1,8 @@
 {
   "name": "@stefafafan/skm",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
-  "description": "A package manager for AI Agent Skills. Supports installation, version management, and renaming of skills. Can be used for both global and project specific skill management.",
+  "description": "A tool for keeping AI Agent Skills under control for team development. Supports storing resolved commit hashes of skills for reproducibility and alias names for keeping names consistent. ",
   "keywords": [
     "agents",
     "cli",
