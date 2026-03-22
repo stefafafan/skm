@@ -1,5 +1,7 @@
 # skm
 
+![NPM Version](https://img.shields.io/npm/v/%40stefafafan%2Fskm)
+
 `skm` is a package manager of [Agent Skills](https://agentskills.io), supporting both project and global-level skills.
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
