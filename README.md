@@ -16,7 +16,7 @@ See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examp
 
 Agent Skills are convenient, but currently have some downsides:
 
-### No skm
+### No `skm`
 
 - Copy and paste skills manually in different ways.
 - No idea if upstream skills have updates.
@@ -36,7 +36,7 @@ project/
             └── SKILL.md
 ```
 
-### With skm
+### With `skm`
 
 - Standardized way of installing/updating skills. `skills.json` shows a clear outline of managed skills.
 - `skills.lock.json` stores resolved commit hashes for reproducible installs.
@@ -142,30 +142,16 @@ skm add https://github.com/stefafafan/skills
 
 Repository-wide imports discover every nested directory containing `SKILL.md`.
 
-## Metadata files used
+## Files read/edited by `skm`
 
-The following files are used by `skm`
+The following files are used by `skm`:
 
-- `skills.json`
-  - user-facing intent
-- `skills.lock.json`
-  - resolved commit hash and integrity data
-- `.skm/`
-  - internal state and stored contents
-- `.agents/skills/`
-  - the derived skills
-
-The intended manifest-first flow is:
-
-1. Change `skills.json` with `skm` commands or by editing it directly.
-2. Run `skm install`.
-3. Let `skills.lock.json` and `.agents/skills/` reconcile automatically.
-
-It is recommended to add the `.skm` directory to `.gitignore`.
-
-```sh
-echo '.skm' >> .gitignore
-```
+| File               | Purpose                                                                 |
+| ------------------ | ----------------------------------------------------------------------- |
+| `skills.json`      | User-facing intent — what skills you want                               |
+| `skills.lock.json` | Resolved commit hashes for reproducible installs                        |
+| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`) |
+| `.agents/skills/`  | The derived skills, read by your coding agent                           |
 
 ## FAQ
 
