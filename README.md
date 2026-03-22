@@ -1,8 +1,9 @@
-# skm - A package manager for Agent Skills
+# skm - Keep Agent Skills Under Control for Team Development
 
 <a href="https://www.npmjs.com/package/@stefafafan/skm"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40stefafafan%2Fskm"></a>
 
-`skm` is a package manager of [Agent Skills](https://agentskills.io), supporting both project and global-level skills.
+`skm` helps keep [Agent Skills](https://agentskills.io) for projects under control.
+It stores resolved commit hashes for reproducibility and lets you alias skill names so teams can keep naming consistent, which matters because the skill `name` and `description` affect how agents trigger them.
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
 
@@ -18,7 +19,17 @@ Agent Skills are convenient, but there are 2 points to consider:
 1. Which version skill did I just download? How should I update them?
 2. People make skills with different naming conventions--should I rename them?
 
-`skm` solves these problems by storing metadata of installed skills and having the ability to alias skills with your favorite names.
+`skm` solves these problems by tracking exactly which commit of each skill was installed and by letting you rename skills locally without changing the upstream repository.
+
+## No skm vs With skm
+
+| No skm                                                                                                  | With skm                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| People copy skills around manually, so nobody knows which commit of a skill ended up in a project.      | `skills.lock.json` stores the resolved commit hash so the installed version is reproducible.                                |
+| Updating or reinstalling skills becomes guesswork: “who copied which version of this skill?”            | `skm install` and `skm update` reconcile from tracked source and lock data instead of tribal knowledge.                     |
+| Skill names drift based on upstream naming choices, personal preferences, or one-off copies.            | `skm rename` lets projects keep consistent local names without forking the original skill.                                  |
+| Over time you end up with hundreds of skills with random names and unclear ownership.                   | `skills.json` gives the project a single inventory of managed skills and their intended names.                              |
+| Agent triggering becomes less predictable when names and descriptions are inconsistent across projects. | Teams can standardize local skill names while still consuming upstream skills, which helps keep triggering more consistent. |
 
 ## Installation
 
