@@ -74,6 +74,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v${{ needs.publish.outputs.version }}" \
+            --repo "${GITHUB_REPOSITORY}" \
             --target "${GITHUB_SHA}" \
             --title "v${{ needs.publish.outputs.version }}" \
             --generate-notes
