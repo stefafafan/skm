@@ -1,6 +1,8 @@
 import { cp, lstat, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
+import { SkmError } from "./errors";
+
 export async function pathExists(targetPath: string): Promise<boolean> {
   try {
     await stat(targetPath);
@@ -53,6 +55,27 @@ export async function isDirectory(targetPath: string): Promise<boolean> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return false;
+    }
+    throw error;
+  }
+}
+
+export async function assertRegularFile(targetPath: string, description: string): Promise<void> {
+  try {
+    const fileStats = await lstat(targetPath);
+    if (fileStats.isFile()) {
+      return;
+    }
+    if (fileStats.isSymbolicLink()) {
+      throw new SkmError(`${description} cannot be a symlink`, 4);
+    }
+    throw new SkmError(`${description} must be a regular file`, 4);
+  } catch (error) {
+    if (error instanceof SkmError) {
+      throw error;
+    }
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new SkmError(`${description} is missing`, 4);
     }
     throw error;
   }
