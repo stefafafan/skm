@@ -46,6 +46,63 @@ test("resolveScope uses the manifest outputDir for project scope", async () => {
   assert.equal(scope.generatedSkillsDir, path.join(projectRoot, ".myagent", "skills"));
 });
 
+test("resolveScope allows a normalized project outputDir that stays inside the project root", async () => {
+  const root = await createTempDir("skm-scope-");
+  const projectRoot = path.join(root, "repo");
+  const nested = path.join(projectRoot, "packages", "feature");
+  await mkdir(nested, { recursive: true });
+  await writeJsonFile(path.join(projectRoot, "skills.json"), {
+    outputDir: "packages/../.myagent/skills",
+    skills: {},
+  });
+
+  const scope = await resolveScope({
+    cwd: nested,
+    homeDir: path.join(root, "home"),
+  });
+
+  assert.equal(scope.kind, "project");
+  assert.equal(scope.generatedSkillsDir, path.join(projectRoot, ".myagent", "skills"));
+});
+
+test("resolveScope rejects an absolute project outputDir", async () => {
+  const root = await createTempDir("skm-scope-");
+  const projectRoot = path.join(root, "repo");
+  const nested = path.join(projectRoot, "packages", "feature");
+  await mkdir(nested, { recursive: true });
+  await writeJsonFile(path.join(projectRoot, "skills.json"), {
+    outputDir: path.join(root, "escaped"),
+    skills: {},
+  });
+
+  await assert.rejects(
+    resolveScope({
+      cwd: nested,
+      homeDir: path.join(root, "home"),
+    }),
+    /Project manifest outputDir must be a relative path inside the project root/,
+  );
+});
+
+test("resolveScope rejects a project outputDir that escapes the project root", async () => {
+  const root = await createTempDir("skm-scope-");
+  const projectRoot = path.join(root, "repo");
+  const nested = path.join(projectRoot, "packages", "feature");
+  await mkdir(nested, { recursive: true });
+  await writeJsonFile(path.join(projectRoot, "skills.json"), {
+    outputDir: "../escaped",
+    skills: {},
+  });
+
+  await assert.rejects(
+    resolveScope({
+      cwd: nested,
+      homeDir: path.join(root, "home"),
+    }),
+    /Project manifest outputDir must stay inside the project root/,
+  );
+});
+
 test("resolveScope falls back to global scope when there is no project manifest", async () => {
   const root = await createTempDir("skm-scope-");
   const cwd = path.join(root, "workspace");
@@ -78,6 +135,26 @@ test("resolveScope keeps the default global generated skills directory when the 
 
   assert.equal(scope.kind, "global");
   assert.equal(scope.generatedSkillsDir, path.join(homeDir, ".agents", "skills"));
+});
+
+test("resolveScope keeps allowing an absolute outputDir for global scope", async () => {
+  const root = await createTempDir("skm-scope-");
+  const cwd = path.join(root, "workspace");
+  const homeDir = path.join(root, "home");
+  const globalOutputDir = path.join(root, "global-skills");
+  await mkdir(cwd, { recursive: true });
+  await writeJsonFile(path.join(homeDir, ".config", "skm", "skills.json"), {
+    outputDir: globalOutputDir,
+    skills: {},
+  });
+
+  const scope = await resolveScope({
+    cwd,
+    homeDir,
+  });
+
+  assert.equal(scope.kind, "global");
+  assert.equal(scope.generatedSkillsDir, globalOutputDir);
 });
 
 test("resolveScope ignores ambient XDG_CONFIG_HOME unless it is passed explicitly", async () => {

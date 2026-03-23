@@ -37,18 +37,18 @@ export async function resolveScope(options: ResolveScopeOptions): Promise<ScopeP
     if (!projectRoot) {
       throw new SkmError("Project scope requested but no skills.json was found", 2);
     }
-    return resolveManifestOutputDir(projectScope(projectRoot), projectRoot);
+    return resolveManifestOutputDir(projectScope(projectRoot));
   }
 
   if (options.explicitScope === "global") {
-    return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome), homeDir);
+    return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome));
   }
 
   const discoveredProjectRoot = await findProjectRoot(options.cwd);
   if (discoveredProjectRoot) {
-    return resolveManifestOutputDir(projectScope(discoveredProjectRoot), discoveredProjectRoot);
+    return resolveManifestOutputDir(projectScope(discoveredProjectRoot));
   }
-  return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome), homeDir);
+  return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome));
 }
 
 export async function findProjectRoot(startDir: string): Promise<string | undefined> {
@@ -93,25 +93,56 @@ export function projectScope(projectRoot: string): ScopePaths {
   };
 }
 
-async function resolveManifestOutputDir(scope: ScopePaths, baseDir: string): Promise<ScopePaths> {
+async function resolveManifestOutputDir(scope: ScopePaths): Promise<ScopePaths> {
   if (!(await pathExists(scope.manifestPath))) {
     return scope;
   }
 
+  let manifest;
   try {
-    const manifest = await readManifest(scope.manifestPath);
-    return {
-      ...scope,
-      generatedSkillsDir: resolveOutputDir(baseDir, manifest.outputDir),
-    };
+    manifest = await readManifest(scope.manifestPath);
   } catch {
     return scope;
   }
+
+  return {
+    ...scope,
+    generatedSkillsDir: resolveOutputDir(scope, manifest.outputDir),
+  };
 }
 
-function resolveOutputDir(baseDir: string, outputDir: string): string {
+function resolveOutputDir(scope: ScopePaths, outputDir: string): string {
   const normalizedOutputDir = outputDir || DEFAULT_OUTPUT_DIR;
+  if (scope.kind === "project") {
+    return resolveProjectOutputDir(scope.rootDir, normalizedOutputDir);
+  }
+
   return path.isAbsolute(normalizedOutputDir)
     ? normalizedOutputDir
-    : path.resolve(baseDir, normalizedOutputDir);
+    : path.resolve(path.dirname(path.dirname(scope.generatedSkillsDir)), normalizedOutputDir);
+}
+
+export function resolveProjectOutputDir(projectRoot: string, outputDir: string): string {
+  const normalizedOutputDir = outputDir || DEFAULT_OUTPUT_DIR;
+  if (path.isAbsolute(normalizedOutputDir)) {
+    throw new SkmError(
+      "Project manifest outputDir must be a relative path inside the project root",
+      2,
+    );
+  }
+
+  const resolvedOutputDir = path.resolve(projectRoot, normalizedOutputDir);
+  if (!isPathInside(projectRoot, resolvedOutputDir)) {
+    throw new SkmError("Project manifest outputDir must stay inside the project root", 2);
+  }
+
+  return resolvedOutputDir;
+}
+
+function isPathInside(rootDir: string, targetDir: string): boolean {
+  const relativePath = path.relative(rootDir, targetDir);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
+  );
 }
