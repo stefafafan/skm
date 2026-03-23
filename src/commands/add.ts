@@ -53,6 +53,7 @@ export async function runAddCommand(options: {
         {
           source: parsedSource,
           requestedRef,
+          requestedRefExplicit: options.requestedRef !== undefined,
           githubBaseUrl: options.githubBaseUrl,
         },
         tempRoot,
@@ -130,6 +131,7 @@ export async function runAddCommand(options: {
       {
         source: parsedSource,
         requestedRef,
+        requestedRefExplicit: options.requestedRef !== undefined,
         githubBaseUrl: options.githubBaseUrl,
       },
       tempRoot,
@@ -140,7 +142,7 @@ export async function runAddCommand(options: {
     const strategy = options.strategy ?? "wrap";
     manifest.skills[canonicalName] = {
       source: options.source,
-      requested: requestedRef,
+      requested: fetched.requestedRef,
       strategy,
     };
     lockfile.skills[canonicalName] = {
@@ -164,7 +166,7 @@ export async function runAddCommand(options: {
       summary: `Added ${canonicalName} to ${scope.kind} scope`,
       details: [
         { label: "source", value: options.source },
-        { label: "requested", value: requestedRef },
+        { label: "requested", value: fetched.requestedRef },
         { label: "strategy", value: strategy },
       ],
       skills: [
@@ -172,7 +174,7 @@ export async function runAddCommand(options: {
           name: canonicalName,
           status: "added",
           source: options.source,
-          requested: requestedRef,
+          requested: fetched.requestedRef,
           resolved: fetched.resolved,
           integrity,
         },

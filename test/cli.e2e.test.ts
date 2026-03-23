@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import path from "node:path";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
@@ -453,6 +454,31 @@ test("skm add rejects refs that start with a dash", async () => {
   await fixture.cleanup();
 });
 
+test("skm add stores slash-containing refs from GitHub tree URLs", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+  git(["checkout", "-b", "feature/foo"], fixture.workspaceRoot);
+  git(["push", "origin", "feature/foo"], fixture.workspaceRoot);
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const source = "https://example.com/example/skills/tree/feature/foo/skills/hello-skill";
+  const result = runCli(["add", source, "--project", "--as", "slash-ref-skill"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  const manifest = await readJsonFile<{
+    skills: Record<string, { source: string; requested: string }>;
+  }>(path.join(workspace, "skills.json"));
+  assert.equal(manifest.skills["slash-ref-skill"]?.source, source);
+  assert.equal(manifest.skills["slash-ref-skill"]?.requested, "feature/foo");
+  await fixture.cleanup();
+});
+
 test("skm add imports every discovered skill from owner/repo shorthand", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -642,6 +668,40 @@ test("skm install rebuilds generated output from the stored manifest entry", asy
     "utf8",
   );
   assert.match(rebuiltSkill, /name: hello-skill/);
+  await fixture.cleanup();
+});
+
+test("skm install re-fetches slash-containing tree refs when the store is missing", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+  git(["checkout", "-b", "feature/foo"], fixture.workspaceRoot);
+  git(["push", "origin", "feature/foo"], fixture.workspaceRoot);
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const source = "https://example.com/example/skills/tree/feature/foo/skills/hello-skill";
+  const addResult = runCli(["add", source, "--project", "--as", "slash-ref-skill"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+  assert.equal(addResult.code, 0, addResult.stderr);
+
+  await rm(path.join(workspace, ".skm", "store"), { recursive: true, force: true });
+  await rm(path.join(workspace, ".agents"), { recursive: true, force: true });
+
+  const installResult = runCli(["install", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(installResult.code, 0, installResult.stderr);
+  const rebuiltSkill = await readFile(
+    path.join(workspace, ".agents", "skills", "slash-ref-skill", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(rebuiltSkill, /name: slash-ref-skill/);
   await fixture.cleanup();
 });
 
@@ -1171,3 +1231,22 @@ test("skm rename fails when the target name already exists", async () => {
   assert.match(result.stderr, /already exists/i);
   await fixture.cleanup();
 });
+
+function git(args: string[], cwd: string): string {
+  const gitArgs = args[0] === "commit" ? ["-c", "commit.gpgsign=false", ...args] : args;
+  const result = spawnSync("git", gitArgs, {
+    cwd,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "cat",
+      GIT_AUTHOR_EMAIL: "cat@example.com",
+      GIT_COMMITTER_NAME: "cat",
+      GIT_COMMITTER_EMAIL: "cat@example.com",
+    },
+  });
+  if (result.status !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout;
+}

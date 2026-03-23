@@ -72,6 +72,7 @@ test("fetchSkillToTempDir resolves a git ref, validates SKILL.md, and returns th
   );
 
   assert.equal(fetched.resolved, fixture.commit);
+  assert.equal(fetched.requestedRef, "main");
   assert.equal(path.basename(fetched.skillDir), "hello-skill");
   await fixture.cleanup();
 });
@@ -175,6 +176,8 @@ test("fetchSkillToTempDir accepts tag refs and fixed commit refs", async () => {
 
   assert.equal(fromTag.resolved, fixture.commit);
   assert.equal(fromCommit.resolved, fixture.commit);
+  assert.equal(fromTag.requestedRef, "v1.0.0");
+  assert.equal(fromCommit.requestedRef, fixture.commit);
   await fixture.cleanup();
 });
 
@@ -195,6 +198,31 @@ test("fetchSkillToTempDir resolves a branch ref from origin when the clone has n
   );
 
   assert.equal(fetched.resolved, fixture.commit);
+  assert.equal(fetched.requestedRef, "main");
+  await fixture.cleanup();
+});
+
+test("fetchSkillToTempDir resolves GitHub tree URLs whose refs contain slashes", async () => {
+  const fixture = await createSkillRepoFixture();
+  const tempRoot = await createTempDir("skm-fetch-");
+  git(["checkout", "-b", "feature/foo"], fixture.workspaceRoot);
+  git(["push", "origin", "feature/foo"], fixture.workspaceRoot);
+
+  const parsedSource = parseSource(
+    "https://example.com/example/skills/tree/feature/foo/skills/hello-skill",
+  );
+  const fetched = await fetchSkillToTempDir(
+    {
+      source: parsedSource,
+      requestedRef: parsedSource.kind === "github-tree" ? parsedSource.ref : "main",
+      githubBaseUrl: fixture.remoteRoot,
+    },
+    tempRoot,
+  );
+
+  assert.equal(fetched.resolved, fixture.commit);
+  assert.equal(fetched.requestedRef, "feature/foo");
+  assert.equal(path.basename(fetched.skillDir), "hello-skill");
   await fixture.cleanup();
 });
 

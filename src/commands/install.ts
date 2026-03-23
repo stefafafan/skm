@@ -45,11 +45,16 @@ export async function runInstallCommand(options: {
       let lockEntry = lockfile.skills[canonicalName];
       const parsedSource = parseSource(entry.source);
       const requestedRef = entry.requested ?? defaultRequestedRef(parsedSource);
+      const requestedRefExplicit =
+        parsedSource.kind === "github-tree" &&
+        entry.requested !== undefined &&
+        entry.requested !== parsedSource.ref;
       if (!lockEntry) {
         const fetched = await fetchSkillToTempDir(
           {
             source: parsedSource,
             requestedRef,
+            requestedRefExplicit,
             githubBaseUrl: options.githubBaseUrl,
           },
           tempRoot,
@@ -73,7 +78,7 @@ export async function runInstallCommand(options: {
           name: canonicalName,
           status: "installed",
           source: entry.source,
-          requested: requestedRef,
+          requested: fetched.requestedRef,
           resolved: lockEntry.resolved,
           integrity,
         });
@@ -86,7 +91,9 @@ export async function runInstallCommand(options: {
         const fetched = await fetchSkillToTempDir(
           {
             source: parsedSource,
-            requestedRef: lockEntry.resolved,
+            requestedRef,
+            requestedRefExplicit,
+            checkoutRef: lockEntry.resolved,
             githubBaseUrl: options.githubBaseUrl,
           },
           tempRoot,
