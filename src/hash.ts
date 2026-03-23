@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { listFilesRecursive } from "./fs";
+import { assertRegularFile, listFilesRecursive } from "./fs";
 
 export async function hashDirectory(dirPath: string): Promise<string> {
+  await assertRegularFile(path.join(dirPath, "SKILL.md"), `Skill directory ${dirPath} SKILL.md`);
   const hash = createHash("sha256");
   const files = await listFilesRecursive(dirPath);
 

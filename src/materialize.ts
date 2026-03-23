@@ -2,7 +2,7 @@ import { readFile, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { SkmError } from "./errors";
-import { copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs";
+import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs";
 import { MaterializationStrategy } from "./manifest";
 
 export interface MaterializeSkillOptions {
@@ -15,6 +15,10 @@ export interface MaterializeSkillOptions {
 }
 
 export async function materializeSkill(options: MaterializeSkillOptions): Promise<string> {
+  await assertRegularFile(
+    path.join(options.sourceDir, "SKILL.md"),
+    `Skill source ${options.manifestSource} SKILL.md`,
+  );
   const outputDir = path.join(options.generatedSkillsDir, options.canonicalName);
   await ensureDir(options.generatedSkillsDir);
   await removeIfExists(outputDir);

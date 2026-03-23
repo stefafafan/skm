@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { SkmError } from "./errors";
-import { copyDirectory, pathExists, removeIfExists } from "./fs";
+import { assertRegularFile, copyDirectory, removeIfExists } from "./fs";
 import { cloneAndCheckout, readHeadCommit } from "./git";
 
 export interface GithubTreeSource {
@@ -87,9 +87,7 @@ export async function fetchSkillToTempDir(
   const checkedOut = await checkoutSourceRepo(options, workingRoot);
   const upstreamSkillDir = path.join(checkedOut.checkoutDir, options.source.subpath);
   const skillMdPath = path.join(upstreamSkillDir, "SKILL.md");
-  if (!(await pathExists(skillMdPath))) {
-    throw new SkmError(`Skill source ${options.source.raw} is missing SKILL.md`, 4);
-  }
+  await assertRegularFile(skillMdPath, `Skill source ${options.source.raw} SKILL.md`);
 
   await copyDirectory(upstreamSkillDir, outputDir);
   await removeIfExists(checkedOut.checkoutDir);
@@ -142,7 +140,11 @@ export async function discoverSkillsInRepo(repoDir: string): Promise<DiscoveredS
 
   async function walk(currentDir: string): Promise<void> {
     const entries = await readdir(currentDir, { withFileTypes: true });
-    const hasSkill = entries.some((entry) => entry.isFile() && entry.name === "SKILL.md");
+    const skillMdEntry = entries.find((entry) => entry.name === "SKILL.md");
+    if (skillMdEntry?.isSymbolicLink()) {
+      throw new SkmError(`Discovered skill at ${currentDir} SKILL.md cannot be a symlink`, 4);
+    }
+    const hasSkill = skillMdEntry?.isFile() ?? false;
     if (hasSkill) {
       const relativeDir = path.relative(repoDir, currentDir) || ".";
       discovered.set(relativeDir, {
