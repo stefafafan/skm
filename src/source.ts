@@ -134,13 +134,13 @@ export async function checkoutSourceRepo(
   const repoUrl = resolveRepoUrl(options.source, options.githubBaseUrl);
 
   await removeIfExists(checkoutDir);
-  await cloneAndCheckout(repoUrl, "HEAD", checkoutDir);
   if (options.source.kind === "github-tree") {
+    await runGit(["clone", "--quiet", "--no-checkout", repoUrl, checkoutDir]);
     const resolvedTreeSource = await resolveTreeSourceLocation(
       checkoutDir,
       options.source,
       options.requestedRef,
-      options.requestedRefExplicit ?? false,
+      options.requestedRefExplicit ?? options.requestedRef !== options.source.ref,
     );
     const resolvedCommit = await resolveGitCommit(checkoutDir, resolvedTreeSource.ref);
     if (!resolvedCommit) {
@@ -148,7 +148,7 @@ export async function checkoutSourceRepo(
     }
     await runGit(["checkout", "--quiet", "--detach", resolvedCommit], checkoutDir);
   } else {
-    await runGit(["checkout", "--quiet", options.requestedRef], checkoutDir);
+    await cloneAndCheckout(repoUrl, options.requestedRef, checkoutDir);
   }
 
   return {
@@ -314,6 +314,10 @@ function inferSubpathForExplicitRef(source: GithubTreeSource, requestedRef: stri
 }
 
 async function resolveGitCommit(repoDir: string, ref: string): Promise<string | undefined> {
+  if (ref.startsWith("-")) {
+    throw new SkmError(`Invalid git ref: ${ref}`, 3);
+  }
+
   const candidates = [ref, `origin/${ref}`, `refs/remotes/origin/${ref}`, `refs/tags/${ref}`];
   for (const candidate of candidates) {
     try {
