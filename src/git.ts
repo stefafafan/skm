@@ -25,9 +25,20 @@ export async function cloneAndCheckout(
   targetDir: string,
 ): Promise<void> {
   await runGit(["clone", "--quiet", repoUrl, targetDir]);
-  await runGit(["checkout", "--quiet", ref], targetDir);
+  const commit = await resolveCheckoutCommit(targetDir, ref);
+  await runGit(["checkout", "--quiet", "--detach", commit], targetDir);
 }
 
 export async function readHeadCommit(repoDir: string): Promise<string> {
   return (await runGit(["rev-parse", "HEAD"], repoDir)).trim();
+}
+
+async function resolveCheckoutCommit(repoDir: string, ref: string): Promise<string> {
+  if (ref.startsWith("-")) {
+    throw new SkmError(`Invalid git ref: ${ref}`, 3);
+  }
+
+  return (
+    await runGit(["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`], repoDir)
+  ).trim();
 }
