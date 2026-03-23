@@ -1,5 +1,4 @@
-import path from "node:path";
-
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { materializeSkill } from "../materialize";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
@@ -24,6 +23,8 @@ export async function runRenameCommand(options: {
   });
   const manifest = await readManifest(scope.manifestPath);
   const lockfile = await readLockfile(scope.lockfilePath);
+  validateCanonicalName(options.oldName);
+  validateCanonicalName(options.newName);
   const manifestEntry = manifest.skills[options.oldName];
   const lockEntry = lockfile.skills[options.oldName];
   if (!manifestEntry) {
@@ -51,7 +52,7 @@ export async function runRenameCommand(options: {
     resolved: lockEntry.resolved,
     strategy: manifestEntry.strategy ?? "wrap",
   });
-  await removeIfExists(path.join(scope.generatedSkillsDir, options.oldName));
+  await removeIfExists(resolveCanonicalSkillPath(scope.generatedSkillsDir, options.oldName));
 
   return {
     kind: "summary",

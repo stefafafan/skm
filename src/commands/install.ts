@@ -2,6 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { pathExists, removeIfExists } from "../fs";
 import { hashDirectory } from "../hash";
@@ -32,13 +33,15 @@ export async function runInstallCommand(options: {
 
   try {
     for (const name of Object.keys(lockfile.skills)) {
+      validateCanonicalName(name);
       if (!(name in manifest.skills)) {
         delete lockfile.skills[name];
-        await removeIfExists(path.join(scope.generatedSkillsDir, name));
+        await removeIfExists(resolveCanonicalSkillPath(scope.generatedSkillsDir, name));
       }
     }
 
     for (const [canonicalName, entry] of Object.entries(manifest.skills)) {
+      validateCanonicalName(canonicalName);
       let lockEntry = lockfile.skills[canonicalName];
       const parsedSource = parseSource(entry.source);
       const requestedRef = entry.requested ?? defaultRequestedRef(parsedSource);

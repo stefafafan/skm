@@ -1,5 +1,4 @@
-import path from "node:path";
-
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { mergeSkillState, readLockfile, readManifest } from "../manifest";
 import { type CliInspectResult } from "../output";
@@ -18,6 +17,7 @@ export async function runInspectCommand(options: {
     xdgConfigHome: options.xdgConfigHome,
     explicitScope: options.scope,
   });
+  validateCanonicalName(options.canonicalName);
   const manifest = await readManifest(scope.manifestPath);
   const lockfile = await readLockfile(scope.lockfilePath);
   const entry = mergeSkillState(manifest, lockfile)[options.canonicalName];
@@ -53,7 +53,7 @@ export async function runInspectCommand(options: {
       { label: "integrity hash", value: entry.integrity ?? "" },
       {
         label: "materialized path",
-        value: path.join(scope.generatedSkillsDir, options.canonicalName),
+        value: resolveCanonicalSkillPath(scope.generatedSkillsDir, options.canonicalName),
       },
       { label: "strategy", value: entry.strategy ?? "wrap" },
       { label: "overridden by project skill", value: overriddenByProjectSkill },

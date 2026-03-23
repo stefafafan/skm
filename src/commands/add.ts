@@ -2,6 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { hashDirectory } from "../hash";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
@@ -63,18 +64,20 @@ export async function runAddCommand(options: {
 
       const seenCanonicalNames = new Set<string>();
       for (const discoveredSkill of discoveredSkills) {
-        if (seenCanonicalNames.has(discoveredSkill.canonicalName)) {
+        const canonicalName = validateCanonicalName(discoveredSkill.canonicalName);
+        if (seenCanonicalNames.has(canonicalName)) {
           throw new SkmError(
-            `Duplicate canonical name discovered: ${discoveredSkill.canonicalName}`,
+            `Duplicate canonical name discovered: ${canonicalName}`,
             5,
           );
         }
-        seenCanonicalNames.add(discoveredSkill.canonicalName);
+        seenCanonicalNames.add(canonicalName);
       }
 
       const strategy = options.strategy ?? "wrap";
       const addedSkills: CliSkillSummary[] = [];
       for (const discoveredSkill of discoveredSkills) {
+        const canonicalName = validateCanonicalName(discoveredSkill.canonicalName);
         const integrity = await hashDirectory(discoveredSkill.absoluteDir);
         const storeDir = await storeSkill(scope.storeDir, discoveredSkill.absoluteDir, integrity);
         const canonicalSource = canonicalTreeUrl(
@@ -82,17 +85,17 @@ export async function runAddCommand(options: {
           requestedRef,
           discoveredSkill.relativeDir,
         );
-        manifest.skills[discoveredSkill.canonicalName] = {
+        manifest.skills[canonicalName] = {
           source: canonicalSource,
           requested: requestedRef,
           strategy,
         };
-        lockfile.skills[discoveredSkill.canonicalName] = {
+        lockfile.skills[canonicalName] = {
           resolved: checkedOut.resolved,
           integrity,
         };
         await materializeSkill({
-          canonicalName: discoveredSkill.canonicalName,
+          canonicalName,
           sourceDir: storeDir,
           generatedSkillsDir: scope.generatedSkillsDir,
           manifestSource: options.source,
@@ -100,7 +103,7 @@ export async function runAddCommand(options: {
           strategy,
         });
         addedSkills.push({
-          name: discoveredSkill.canonicalName,
+          name: canonicalName,
           status: "added",
           source: canonicalSource,
           requested: requestedRef,
@@ -133,7 +136,7 @@ export async function runAddCommand(options: {
     );
     const integrity = await hashDirectory(fetched.skillDir);
     const storeDir = await storeSkill(scope.storeDir, fetched.skillDir, integrity);
-    const canonicalName = options.canonicalName ?? parsedSource.defaultName;
+    const canonicalName = validateCanonicalName(options.canonicalName ?? parsedSource.defaultName);
     const strategy = options.strategy ?? "wrap";
     manifest.skills[canonicalName] = {
       source: options.source,
