@@ -424,6 +424,35 @@ test("skm add accepts GitHub tree URLs as a source without an explicit --ref", a
   await fixture.cleanup();
 });
 
+test("skm add rejects refs that start with a dash", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const result = runCli(
+    [
+      "add",
+      "https://example.com/example/skills/tree/main/skills/hello-skill",
+      "--project",
+      "--as",
+      "explicit-git",
+      "--ref",
+      "-binjected",
+    ],
+    {
+      cwd: workspace,
+      env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+    },
+  );
+
+  assert.equal(result.code, 3);
+  assert.match(result.stderr, /invalid git ref/i);
+  await fixture.cleanup();
+});
+
 test("skm add imports every discovered skill from owner/repo shorthand", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");

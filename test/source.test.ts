@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { access, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 
 import {
@@ -127,6 +127,75 @@ test("discoverSkillsInRepo rejects a symlinked SKILL.md", async () => {
   await assert.rejects(discoverSkillsInRepo(root), /SKILL\.md.*symlink/i);
   assert.equal(await readFile(redirectedFile, "utf8"), "leave me alone\n");
   await rm(root, { recursive: true, force: true });
+});
+
+test("fetchSkillToTempDir rejects refs that begin with checkout options", async () => {
+  const fixture = await createSkillRepoFixture();
+  const tempRoot = await createTempDir("skm-fetch-");
+
+  await assert.rejects(
+    () =>
+      fetchSkillToTempDir(
+        {
+          source: parseSource("https://example.com/example/skills/tree/main/skills/hello-skill"),
+          requestedRef: "-binjected",
+          githubBaseUrl: fixture.remoteRoot,
+        },
+        tempRoot,
+      ),
+    /invalid git ref/i,
+  );
+
+  await fixture.cleanup();
+});
+
+test("fetchSkillToTempDir accepts tag refs and fixed commit refs", async () => {
+  const fixture = await createSkillRepoFixture();
+  const tempRoot = await createTempDir("skm-fetch-");
+
+  git(["tag", "v1.0.0"], fixture.workspaceRoot);
+  git(["push", "origin", "v1.0.0"], fixture.workspaceRoot);
+
+  const fromTag = await fetchSkillToTempDir(
+    {
+      source: parseSource("https://example.com/example/skills/tree/main/skills/hello-skill"),
+      requestedRef: "v1.0.0",
+      githubBaseUrl: fixture.remoteRoot,
+    },
+    tempRoot,
+  );
+  const fromCommit = await fetchSkillToTempDir(
+    {
+      source: parseSource("https://example.com/example/skills/tree/main/skills/hello-skill"),
+      requestedRef: fixture.commit,
+      githubBaseUrl: fixture.remoteRoot,
+    },
+    tempRoot,
+  );
+
+  assert.equal(fromTag.resolved, fixture.commit);
+  assert.equal(fromCommit.resolved, fixture.commit);
+  await fixture.cleanup();
+});
+
+test("fetchSkillToTempDir resolves a branch ref from origin when the clone has no local branch", async () => {
+  const fixture = await createSkillRepoFixture();
+  const tempRoot = await createTempDir("skm-fetch-");
+  const bareRepo = path.join(fixture.remoteRoot, "example", "skills.git");
+
+  git(["symbolic-ref", "HEAD", "refs/heads/master"], bareRepo);
+
+  const fetched = await fetchSkillToTempDir(
+    {
+      source: parseSource("https://example.com/example/skills/tree/main/skills/hello-skill"),
+      requestedRef: "main",
+      githubBaseUrl: fixture.remoteRoot,
+    },
+    tempRoot,
+  );
+
+  assert.equal(fetched.resolved, fixture.commit);
+  await fixture.cleanup();
 });
 
 function git(args: string[], cwd: string): string {

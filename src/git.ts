@@ -25,9 +25,34 @@ export async function cloneAndCheckout(
   targetDir: string,
 ): Promise<void> {
   await runGit(["clone", "--quiet", repoUrl, targetDir]);
-  await runGit(["checkout", "--quiet", ref], targetDir);
+  const commit = await resolveCheckoutCommit(targetDir, ref);
+  await runGit(["checkout", "--quiet", "--detach", commit], targetDir);
 }
 
 export async function readHeadCommit(repoDir: string): Promise<string> {
   return (await runGit(["rev-parse", "HEAD"], repoDir)).trim();
+}
+
+async function resolveCheckoutCommit(repoDir: string, ref: string): Promise<string> {
+  if (ref.startsWith("-")) {
+    throw new SkmError(`Invalid git ref: ${ref}`, 3);
+  }
+
+  let lastError: SkmError | undefined;
+  for (const candidate of [
+    ref,
+    `refs/tags/${ref}`,
+    `refs/heads/${ref}`,
+    `refs/remotes/origin/${ref}`,
+  ]) {
+    try {
+      return (
+        await runGit(["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`], repoDir)
+      ).trim();
+    } catch (error) {
+      lastError = error as SkmError;
+    }
+  }
+
+  throw lastError ?? new SkmError(`Unable to resolve git ref: ${ref}`, 3);
 }
