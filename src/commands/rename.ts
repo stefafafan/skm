@@ -36,6 +36,7 @@ export async function runRenameCommand(options: {
   if (!lockEntry) {
     throw new SkmError(`Skill ${options.oldName} is missing lockfile state`, 2);
   }
+  const sourceDir = storePath(scope.storeDir, lockEntry.integrity);
 
   delete manifest.skills[options.oldName];
   manifest.skills[options.newName] = manifestEntry;
@@ -46,7 +47,7 @@ export async function runRenameCommand(options: {
 
   await materializeSkill({
     canonicalName: options.newName,
-    sourceDir: storePath(scope.storeDir, lockEntry.integrity),
+    sourceDir,
     generatedSkillsDir: scope.generatedSkillsDir,
     manifestSource: manifestEntry.source,
     resolved: lockEntry.resolved,
