@@ -176,6 +176,8 @@ test("fetchSkillToTempDir accepts tag refs and fixed commit refs", async () => {
 
   assert.equal(fromTag.resolved, fixture.commit);
   assert.equal(fromCommit.resolved, fixture.commit);
+  assert.equal(fromTag.requestedRef, "v1.0.0");
+  assert.equal(fromCommit.requestedRef, fixture.commit);
   await fixture.cleanup();
 });
 

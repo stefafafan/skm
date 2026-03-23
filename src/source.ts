@@ -89,11 +89,12 @@ export async function fetchSkillToTempDir(
 
   const workingRoot = tempRoot ?? (await mkdtemp(path.join(os.tmpdir(), "skm-fetch-")));
   const checkedOut = await checkoutSourceRepo(options, workingRoot);
+  const requestedRefExplicit = resolveRequestedRefExplicit(options);
   const resolvedTreeSource = await resolveTreeSourceLocation(
     checkedOut.checkoutDir,
     options.source,
     options.requestedRef,
-    options.requestedRefExplicit ?? false,
+    requestedRefExplicit,
   );
   const outputDir = path.join(workingRoot, validateCanonicalName(resolvedTreeSource.defaultName));
   const upstreamSkillDir = path.join(checkedOut.checkoutDir, resolvedTreeSource.subpath);
@@ -137,11 +138,12 @@ export async function checkoutSourceRepo(
   await removeIfExists(checkoutDir);
   if (options.source.kind === "github-tree") {
     await runGit(["clone", "--quiet", "--no-checkout", repoUrl, checkoutDir]);
+    const requestedRefExplicit = resolveRequestedRefExplicit(options);
     const resolvedTreeSource = await resolveTreeSourceLocation(
       checkoutDir,
       options.source,
       options.requestedRef,
-      options.requestedRefExplicit ?? options.requestedRef !== options.source.ref,
+      requestedRefExplicit,
     );
     const checkoutRef = options.checkoutRef ?? resolvedTreeSource.ref;
     const resolvedCommit = await resolveGitCommit(checkoutDir, checkoutRef);
@@ -331,4 +333,12 @@ async function resolveGitCommit(repoDir: string, ref: string): Promise<string | 
     }
   }
   return undefined;
+}
+
+function resolveRequestedRefExplicit(options: FetchSkillOptions): boolean {
+  if (options.source.kind !== "github-tree") {
+    return options.requestedRefExplicit ?? false;
+  }
+
+  return options.requestedRefExplicit ?? options.requestedRef !== options.source.ref;
 }
