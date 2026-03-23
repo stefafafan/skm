@@ -35,14 +35,23 @@ export interface ResolvedSkillEntry extends SkillManifestEntry {
 export async function initManifest(
   manifestPath: string,
   force: boolean,
-  outputDir = DEFAULT_OUTPUT_DIR,
+  outputDir?: string,
 ): Promise<void> {
   if (!force && (await pathExists(manifestPath))) {
     throw new SkmError(`Manifest already exists at ${manifestPath}`, 5);
   }
 
+  let nextOutputDir = outputDir;
+  if (nextOutputDir === undefined && (await pathExists(manifestPath))) {
+    try {
+      nextOutputDir = (await readManifest(manifestPath)).outputDir;
+    } catch {
+      nextOutputDir = undefined;
+    }
+  }
+
   await writeManifest(manifestPath, {
-    outputDir,
+    outputDir: nextOutputDir ?? DEFAULT_OUTPUT_DIR,
     skills: {},
   });
 }

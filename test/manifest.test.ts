@@ -42,6 +42,23 @@ test("readManifest defaults outputDir when it is not present", async () => {
   assert.deepEqual(manifest.skills, {});
 });
 
+test("initManifest --force preserves an existing outputDir when none is provided", async () => {
+  const root = await createTempDir("skm-manifest-");
+  const manifestPath = path.join(root, "skills.json");
+  await mkdir(root, { recursive: true });
+
+  await writeJsonFile(manifestPath, {
+    outputDir: ".myagent/skills",
+    skills: { stale: {} },
+  });
+
+  await initManifest(manifestPath, true);
+
+  const manifest = await readManifest(manifestPath);
+  assert.equal(manifest.outputDir, ".myagent/skills");
+  assert.deepEqual(manifest.skills, {});
+});
+
 test("initLockfile writes an empty lockfile", async () => {
   const root = await createTempDir("skm-manifest-");
   const lockfilePath = path.join(root, "skills.lock.json");

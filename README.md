@@ -154,11 +154,11 @@ Repository-wide imports discover every nested directory containing `SKILL.md`.
 
 The following files are used by `skm`:
 
-| File               | Purpose                                                                        |
-| ------------------ | ------------------------------------------------------------------------------ |
-| `skills.json`      | User-facing intent — what skills you want                                      |
-| `skills.lock.json` | Resolved commit hashes for reproducible installs                               |
-| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`)        |
+| File               | Purpose                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `skills.json`      | User-facing intent — what skills you want                                       |
+| `skills.lock.json` | Resolved commit hashes for reproducible installs                                |
+| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`)         |
 | `.agents/skills/`  | The default derived skills directory, configurable with `skm init --output-dir` |
 
 ## FAQ

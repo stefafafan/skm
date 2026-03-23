@@ -151,18 +151,22 @@ test("skm init --outputDir persists the generated skills directory", async () =>
   assert.deepEqual(manifest.skills, {});
 });
 
-test("skm init --force rewrites an existing project manifest", async () => {
+test("skm init --force rewrites an existing project manifest and preserves outputDir", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
   await mkdir(workspace, { recursive: true });
 
   assert.equal(
-    runCli(["init", "--project"], { cwd: workspace, env: { HOME: path.join(root, "home") } }).code,
+    runCli(["init", "--project", "--outputDir", ".myagent/skills"], {
+      cwd: workspace,
+      env: { HOME: path.join(root, "home") },
+    }).code,
     0,
   );
-  let manifest = await readJsonFile<{ skills: Record<string, unknown> }>(
-    path.join(workspace, "skills.json"),
-  );
+  let manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(path.join(workspace, "skills.json"));
   manifest.skills = { stale: {} };
   await writeJsonFile(path.join(workspace, "skills.json"), manifest);
 
@@ -172,9 +176,38 @@ test("skm init --force rewrites an existing project manifest", async () => {
   });
 
   assert.equal(result.code, 0, result.stderr);
-  manifest = await readJsonFile<{ skills: Record<string, unknown> }>(
-    path.join(workspace, "skills.json"),
+  manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(path.join(workspace, "skills.json"));
+  assert.equal(manifest.outputDir, ".myagent/skills");
+  assert.deepEqual(manifest.skills, {});
+});
+
+test("skm init --force --outputDir overrides an existing outputDir", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(
+    runCli(["init", "--project", "--outputDir", ".myagent/skills"], {
+      cwd: workspace,
+      env: { HOME: path.join(root, "home") },
+    }).code,
+    0,
   );
+
+  const result = runCli(["init", "--project", "--force", "--outputDir", ".claude/skills"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  const manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(path.join(workspace, "skills.json"));
+  assert.equal(manifest.outputDir, ".claude/skills");
   assert.deepEqual(manifest.skills, {});
 });
 
