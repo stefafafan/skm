@@ -157,7 +157,7 @@ async function dispatch(argv: string[], cwd: string, env: NodeJS.ProcessEnv): Pr
       setExecution(runInspect(cwd, env, name, options));
     });
 
-  cli.parse(["node", "skm", ...argv], { run: true });
+  cli.parse(["node", "skm", ...normalizeDashPrefixedOptionValues(argv)], { run: true });
 
   if (execution) {
     return await execution;
@@ -188,6 +188,36 @@ function registerGlobalOptions(cli: ReturnType<typeof cac>): void {
   cli.option("-v, --version", "Display version");
   cli.option("--project", "Use project scope");
   cli.option("--global", "Use global scope");
+}
+
+function normalizeDashPrefixedOptionValues(argv: string[]): string[] {
+  const normalized: string[] = [];
+  const optionsWithValues = new Set(["--as", "--output-dir", "--ref"]);
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const current = argv[index];
+    if (current === undefined) {
+      continue;
+    }
+    if (current === "--") {
+      normalized.push(...argv.slice(index));
+      break;
+    }
+    const next = argv[index + 1];
+    if (
+      current &&
+      optionsWithValues.has(current) &&
+      next &&
+      /^-[^-]/.test(next)
+    ) {
+      normalized.push(`${current}=${next}`);
+      index += 1;
+      continue;
+    }
+    normalized.push(current);
+  }
+
+  return normalized;
 }
 
 async function runInit(
