@@ -671,6 +671,40 @@ test("skm install rebuilds generated output from the stored manifest entry", asy
   await fixture.cleanup();
 });
 
+test("skm install re-fetches slash-containing tree refs when the store is missing", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+  git(["checkout", "-b", "feature/foo"], fixture.workspaceRoot);
+  git(["push", "origin", "feature/foo"], fixture.workspaceRoot);
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const source = "https://example.com/example/skills/tree/feature/foo/skills/hello-skill";
+  const addResult = runCli(["add", source, "--project", "--as", "slash-ref-skill"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+  assert.equal(addResult.code, 0, addResult.stderr);
+
+  await rm(path.join(workspace, ".skm", "store"), { recursive: true, force: true });
+  await rm(path.join(workspace, ".agents"), { recursive: true, force: true });
+
+  const installResult = runCli(["install", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(installResult.code, 0, installResult.stderr);
+  const rebuiltSkill = await readFile(
+    path.join(workspace, ".agents", "skills", "slash-ref-skill", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(rebuiltSkill, /name: slash-ref-skill/);
+  await fixture.cleanup();
+});
+
 test("skm install rejects lockfile integrity values that traverse outside the store", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");

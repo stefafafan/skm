@@ -34,6 +34,7 @@ export interface FetchSkillOptions {
   source: ParsedSource;
   requestedRef: string;
   requestedRefExplicit?: boolean;
+  checkoutRef?: string;
   githubBaseUrl?: string;
 }
 
@@ -142,9 +143,10 @@ export async function checkoutSourceRepo(
       options.requestedRef,
       options.requestedRefExplicit ?? options.requestedRef !== options.source.ref,
     );
-    const resolvedCommit = await resolveGitCommit(checkoutDir, resolvedTreeSource.ref);
+    const checkoutRef = options.checkoutRef ?? resolvedTreeSource.ref;
+    const resolvedCommit = await resolveGitCommit(checkoutDir, checkoutRef);
     if (!resolvedCommit) {
-      throw new SkmError(`Unable to resolve git ref: ${resolvedTreeSource.ref}`, 3);
+      throw new SkmError(`Unable to resolve git ref: ${checkoutRef}`, 3);
     }
     await runGit(["checkout", "--quiet", "--detach", resolvedCommit], checkoutDir);
   } else {

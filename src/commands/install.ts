@@ -91,8 +91,9 @@ export async function runInstallCommand(options: {
         const fetched = await fetchSkillToTempDir(
           {
             source: parsedSource,
-            requestedRef: lockEntry.resolved,
-            requestedRefExplicit: true,
+            requestedRef,
+            requestedRefExplicit,
+            checkoutRef: lockEntry.resolved,
             githubBaseUrl: options.githubBaseUrl,
           },
           tempRoot,
