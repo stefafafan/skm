@@ -9,6 +9,7 @@ export type ScopeKind = "global" | "project";
 export interface ScopePaths {
   kind: ScopeKind;
   rootDir: string;
+  outputBaseDir: string;
   manifestPath: string;
   lockfilePath: string;
   stateDir: string;
@@ -73,6 +74,7 @@ export function globalScope(homeDir: string, xdgConfigHome?: string): ScopePaths
   return {
     kind: "global",
     rootDir: configRoot,
+    outputBaseDir: homeDir,
     manifestPath: path.join(configRoot, "skills.json"),
     lockfilePath: path.join(configRoot, "skills.lock.json"),
     stateDir: configRoot,
@@ -85,6 +87,7 @@ export function projectScope(projectRoot: string): ScopePaths {
   return {
     kind: "project",
     rootDir: projectRoot,
+    outputBaseDir: projectRoot,
     manifestPath: path.join(projectRoot, "skills.json"),
     lockfilePath: path.join(projectRoot, "skills.lock.json"),
     stateDir: path.join(projectRoot, ".skm"),
@@ -119,7 +122,7 @@ function resolveOutputDir(scope: ScopePaths, outputDir: string): string {
 
   return path.isAbsolute(normalizedOutputDir)
     ? normalizedOutputDir
-    : path.resolve(path.dirname(path.dirname(scope.generatedSkillsDir)), normalizedOutputDir);
+    : path.resolve(scope.outputBaseDir, normalizedOutputDir);
 }
 
 export function resolveProjectOutputDir(projectRoot: string, outputDir: string): string {

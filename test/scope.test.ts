@@ -157,6 +157,27 @@ test("resolveScope keeps allowing an absolute outputDir for global scope", async
   assert.equal(scope.generatedSkillsDir, globalOutputDir);
 });
 
+test("resolveScope resolves a relative global outputDir from HOME instead of the config root", async () => {
+  const root = await createTempDir("skm-scope-");
+  const cwd = path.join(root, "workspace");
+  const homeDir = path.join(root, "home");
+  const xdgConfigHome = path.join(root, "xdg");
+  await mkdir(cwd, { recursive: true });
+  await writeJsonFile(path.join(xdgConfigHome, "skm", "skills.json"), {
+    outputDir: ".claude/skills",
+    skills: {},
+  });
+
+  const scope = await resolveScope({
+    cwd,
+    homeDir,
+    xdgConfigHome,
+  });
+
+  assert.equal(scope.kind, "global");
+  assert.equal(scope.generatedSkillsDir, path.join(homeDir, ".claude", "skills"));
+});
+
 test("resolveScope ignores ambient XDG_CONFIG_HOME unless it is passed explicitly", async () => {
   const root = await createTempDir("skm-scope-");
   const cwd = path.join(root, "workspace");
