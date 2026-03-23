@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import path from "node:path";
-import { mkdir, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 
 import {
   createGitHubRepoFixture,
@@ -616,6 +616,53 @@ test("skm install rebuilds generated output from the stored manifest entry", asy
   await fixture.cleanup();
 });
 
+test("skm install rejects lockfile integrity values that traverse outside the store", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  assert.equal(
+    runCli(
+      ["add", "https://example.com/example/skills/tree/main/skills/hello-skill", "--project"],
+      {
+        cwd: workspace,
+        env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+      },
+    ).code,
+    0,
+  );
+
+  const poisonedStoreTarget = path.join(workspace, "payload");
+  await mkdir(poisonedStoreTarget, { recursive: true });
+  await writeJsonFile(path.join(workspace, "skills.lock.json"), {
+    skills: {
+      "hello-skill": {
+        resolved: fixture.commit,
+        integrity: "../../payload",
+      },
+    },
+  });
+  await rm(path.join(workspace, ".agents"), { recursive: true, force: true });
+  await writeJsonFile(path.join(poisonedStoreTarget, "nested.json"), { poisoned: true });
+  await writeFile(
+    path.join(poisonedStoreTarget, "SKILL.md"),
+    ["---", "name: poisoned", "description: poisoned", "---", "", "# Payload", ""].join("\n"),
+  );
+
+  const result = runCli(["install", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid integrity/i);
+  await assert.rejects(() => stat(path.join(workspace, ".agents", "skills", "hello-skill")));
+  await fixture.cleanup();
+});
+
 test("skm install resolves manual manifest edits into the lockfile and prunes removed skills", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -977,6 +1024,71 @@ test("skm rename rejects unsafe target canonical names", async () => {
   assert.equal(result.code, 2);
   assert.match(result.stderr, /invalid canonical name/i);
   await assert.rejects(() => stat(path.join(workspace, "escaped-skill")));
+  await fixture.cleanup();
+});
+
+test("skm rename rejects lockfile integrity values that traverse outside the store", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  assert.equal(
+    runCli(
+      ["add", "https://example.com/example/skills/tree/main/skills/hello-skill", "--project"],
+      {
+        cwd: workspace,
+        env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+      },
+    ).code,
+    0,
+  );
+
+  const poisonedStoreTarget = path.join(workspace, "payload");
+  await mkdir(poisonedStoreTarget, { recursive: true });
+  await writeJsonFile(path.join(workspace, "skills.lock.json"), {
+    skills: {
+      "hello-skill": {
+        resolved: fixture.commit,
+        integrity: "../../payload",
+      },
+    },
+  });
+  await writeFile(
+    path.join(poisonedStoreTarget, "SKILL.md"),
+    ["---", "name: poisoned", "description: poisoned", "---", "", "# Payload", ""].join("\n"),
+  );
+
+  const result = runCli(["rename", "hello-skill", "review-code-quality", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid integrity/i);
+
+  const manifest = await readJsonFile<{ skills: Record<string, { source: string }> }>(
+    path.join(workspace, "skills.json"),
+  );
+  const lockfile = await readJsonFile<{
+    skills: Record<string, { resolved: string; integrity: string }>;
+  }>(path.join(workspace, "skills.lock.json"));
+  assert.equal(
+    manifest.skills["hello-skill"]?.source,
+    "https://example.com/example/skills/tree/main/skills/hello-skill",
+  );
+  assert.equal(manifest.skills["review-code-quality"], undefined);
+  assert.equal(lockfile.skills["hello-skill"]?.integrity, "../../payload");
+  assert.equal(lockfile.skills["review-code-quality"], undefined);
+  assert.match(
+    await readFile(path.join(workspace, ".agents", "skills", "hello-skill", "SKILL.md"), "utf8"),
+    /name: hello-skill/,
+  );
+  await assert.rejects(() =>
+    stat(path.join(workspace, ".agents", "skills", "review-code-quality")),
+  );
   await fixture.cleanup();
 });
 
