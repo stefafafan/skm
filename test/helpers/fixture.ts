@@ -42,12 +42,14 @@ export function runCli(
   args: string[],
   options: { cwd: string; env?: NodeJS.ProcessEnv },
 ): CliResult {
+  const baseEnv = { ...process.env };
+  delete baseEnv.XDG_CONFIG_HOME;
   const result = spawnSync(
     process.execPath,
     [path.resolve(process.cwd(), "dist/src/cli.js"), ...args],
     {
       cwd: options.cwd,
-      env: { ...process.env, ...options.env },
+      env: { ...baseEnv, ...options.env },
       encoding: "utf8",
     },
   );
