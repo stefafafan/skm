@@ -59,6 +59,34 @@ test("skm add --help prints command-specific usage", async () => {
   assert.match(result.stdout, /Usage: skm add <source>/i);
 });
 
+test("skm rejects unknown options instead of treating them as positional arguments", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["add", "--bogus", "example/skills"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /unknown option/i);
+});
+
+test("skm rejects unknown top-level options", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["--bogus"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /unknown option/i);
+});
+
 test("skm version prints the package version", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -911,6 +939,65 @@ test("skm update refreshes moving refs and skm list marks project overrides", as
   assert.equal(listResult.code, 0, listResult.stderr);
   assert.match(listResult.stdout, /shared-skill\s+project.+active/);
   assert.match(listResult.stdout, /shared-skill\s+global.+overridden/);
+  await fixture.cleanup();
+});
+
+test("skm treats scope flags after -- as positional-only", async () => {
+  const root = await createTempDir("skm-cli-");
+  const project = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(project, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: project, env: { HOME: home } }).code, 0);
+  assert.equal(runCli(["init", "--global"], { cwd: project, env: { HOME: home } }).code, 0);
+  assert.equal(
+    runCli(
+      [
+        "add",
+        "https://example.com/example/skills/tree/main/skills/hello-skill",
+        "--global",
+        "--as",
+        "shared-skill",
+      ],
+      {
+        cwd: project,
+        env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+      },
+    ).code,
+    0,
+  );
+  assert.equal(
+    runCli(
+      [
+        "add",
+        "https://example.com/example/skills/tree/main/skills/hello-skill",
+        "--project",
+        "--as",
+        "shared-skill",
+      ],
+      {
+        cwd: project,
+        env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+      },
+    ).code,
+    0,
+  );
+
+  const terminatedScopeResult = runCli(["list", "--", "--global"], {
+    cwd: project,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+  assert.equal(terminatedScopeResult.code, 0, terminatedScopeResult.stderr);
+  assert.match(terminatedScopeResult.stdout, /shared-skill\s+project.+active/);
+  assert.doesNotMatch(terminatedScopeResult.stdout, /shared-skill\s+global.+active/);
+
+  const globalScopeResult = runCli(["list", "--global"], {
+    cwd: project,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+  assert.equal(globalScopeResult.code, 0, globalScopeResult.stderr);
+  assert.match(globalScopeResult.stdout, /shared-skill\s+global.+active/);
   await fixture.cleanup();
 });
 

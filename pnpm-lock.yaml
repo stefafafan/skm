@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      cac:
+        specifier: ^6.7.14
+        version: 6.7.14
       ink:
         specifier: ^6.8.0
         version: 6.8.0(@types/react@19.2.14)(react@19.2.4)
@@ -286,6 +289,10 @@ packages:
   auto-bind@5.0.1:
     resolution: {integrity: sha512-ooviqdwwgfIfNmDwo94wlshcdzfO64XV0Cg6oDsDYBJfITDz1EngD2z7DkbvCWn+XIMsIqW27sEVF6qcpJrRcg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+
+  cac@6.7.14:
+    resolution: {integrity: sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ==}
+    engines: {node: '>=8'}
 
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
@@ -610,6 +617,8 @@ snapshots:
   ansi-styles@6.2.3: {}
 
   auto-bind@5.0.1: {}
+
+  cac@6.7.14: {}
 
   chalk@5.6.2: {}
 

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { validateCanonicalName } from "./canonical-name";
+import cac from "cac";
 import { runAddCommand } from "./commands/add";
 import { runInitCommand } from "./commands/init";
 import { runInspectCommand } from "./commands/inspect";
@@ -14,37 +15,49 @@ import { SkmError, isSkmError } from "./errors";
 import { renderCliResultAsText, type CliResult } from "./output";
 import { renderCliResultWithInk } from "./ui/render";
 
-interface ParsedCli {
-  command?: string;
-  positional: string[];
-  scope?: "global" | "project";
-  all: boolean;
-  force: boolean;
+interface SharedOptions {
   help: boolean;
   version: boolean;
-  alias?: string;
-  ref?: string;
-  outputDir?: string;
-  outputDirSpecified: boolean;
 }
 
-export async function main(
-  argv: string[],
-  context?: {
-    cwd?: string;
-    env?: NodeJS.ProcessEnv;
-    stdoutIsTTY?: boolean;
-    stdoutColumns?: number;
-  },
-): Promise<number> {
-  const parsed = parseArgv(argv);
+interface ScopeOptions extends SharedOptions {
+  global?: boolean;
+  project?: boolean;
+}
+
+interface InitOptions extends ScopeOptions {
+  force?: boolean;
+  outputDir?: string;
+}
+
+interface AddOptions extends ScopeOptions {
+  as?: string;
+  ref?: string;
+}
+
+interface UpdateOptions extends ScopeOptions {
+  force?: boolean;
+}
+
+interface ListOptions extends ScopeOptions {
+  all?: boolean;
+}
+
+interface MainContext {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  stdoutIsTTY?: boolean;
+  stdoutColumns?: number;
+}
+
+export async function main(argv: string[], context?: MainContext): Promise<number> {
   const cwd = context?.cwd ?? process.cwd();
   const env = context?.env ?? process.env;
   const stdoutIsTTY = context?.stdoutIsTTY ?? process.stdout.isTTY ?? false;
   const stdoutColumns = context?.stdoutColumns ?? process.stdout.columns;
 
   try {
-    const output = await dispatch(parsed, cwd, env);
+    const output = await dispatch(argv, cwd, env);
     if (output) {
       const renderedOutput = stdoutIsTTY
         ? await renderCliResultWithInk(output, { columns: stdoutColumns })
@@ -57,195 +70,370 @@ export async function main(
       process.stderr.write(`${error.message}\n`);
       return error.exitCode;
     }
+    if (isCacError(error)) {
+      process.stderr.write(`${error.message}\n`);
+      return 2;
+    }
     const unknown = error as Error;
     process.stderr.write(`${unknown.message}\n`);
     return 1;
   }
 }
 
-function parseArgv(argv: string[]): ParsedCli {
-  const parsed: ParsedCli = {
-    positional: [],
-    all: false,
-    force: false,
-    help: false,
-    version: false,
-    outputDirSpecified: false,
+async function dispatch(argv: string[], cwd: string, env: NodeJS.ProcessEnv): Promise<CliResult> {
+  const cli = cac("skm");
+  let execution: Promise<CliResult> | undefined;
+  const setExecution = (result: CliResult | Promise<CliResult>) => {
+    execution = Promise.resolve(result);
   };
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === undefined) {
-      continue;
-    }
-    if (token === "--global") {
-      parsed.scope = "global";
-      continue;
-    }
-    if (token === "--help" || token === "-h") {
-      parsed.help = true;
-      continue;
-    }
-    if (token === "--version" || token === "-v") {
-      parsed.version = true;
-      continue;
-    }
-    if (token === "--project") {
-      parsed.scope = "project";
-      continue;
-    }
-    if (token === "--all") {
-      parsed.all = true;
-      continue;
-    }
-    if (token === "--force") {
-      parsed.force = true;
-      continue;
-    }
-    if (token === "--as") {
-      parsed.alias = argv[index + 1];
-      index += 1;
-      continue;
-    }
-    if (token === "--ref") {
-      parsed.ref = argv[index + 1];
-      index += 1;
-      continue;
-    }
-    if (token === "--output-dir" || token === "--outputDir") {
-      parsed.outputDirSpecified = true;
-      parsed.outputDir = argv[index + 1];
-      index += 1;
-      continue;
-    }
+  registerGlobalOptions(cli);
 
-    if (!parsed.command) {
-      parsed.command = token;
-      continue;
+  cli.command("help [command]", "Show help for skm or a subcommand").action((command?: string) => {
+    setExecution(buildHelpResult(command));
+  });
+
+  cli.command("version", "Print the current skm version").action((options: SharedOptions) => {
+    if (options.version) {
+      setExecution(buildVersionResult());
+      return;
     }
-    parsed.positional.push(token);
+    if (options.help) {
+      setExecution(buildHelpResult("version"));
+      return;
+    }
+    setExecution(buildVersionResult());
+  });
+
+  cli
+    .command("init", "Initialize skm metadata")
+    .option("--force", "Rewrite existing manifest and lockfile")
+    .option("--output-dir <path>", "Configure where managed skills are materialized")
+    .action((options: InitOptions) => {
+      setExecution(runInit(cwd, env, options));
+    });
+
+  cli
+    .command("add [source]", "Add a skill from an upstream source")
+    .option("--as <name>", "Set the local skill name for single-skill imports")
+    .option("--ref <ref>", "Override the requested branch, tag, or commit")
+    .action((source: string | undefined, options: AddOptions) => {
+      setExecution(runAdd(cwd, env, source, options));
+    });
+
+  cli
+    .command("remove [name]", "Remove a managed skill")
+    .action((name: string | undefined, options: ScopeOptions) => {
+      setExecution(runRemove(cwd, env, name, options));
+    });
+
+  cli
+    .command("rename [oldName] [newName]", "Rename a managed skill")
+    .action((oldName: string | undefined, newName: string | undefined, options: ScopeOptions) => {
+      setExecution(runRename(cwd, env, oldName, newName, options));
+    });
+
+  cli.command("install", "Reinstall all managed skills").action((options: ScopeOptions) => {
+    setExecution(runInstall(cwd, env, options));
+  });
+
+  cli
+    .command("update [name]", "Update one or all managed skills")
+    .option("--force", "Refresh even when the requested ref is already a fixed commit")
+    .action((name: string | undefined, options: UpdateOptions) => {
+      setExecution(runUpdate(cwd, env, name, options));
+    });
+
+  cli
+    .command("list", "List managed skills")
+    .option("--all", "Show both project and global entries when available")
+    .action((options: ListOptions) => {
+      setExecution(runList(cwd, env, options));
+    });
+
+  cli
+    .command("inspect [name]", "Inspect a managed skill")
+    .action((name: string | undefined, options: ScopeOptions) => {
+      setExecution(runInspect(cwd, env, name, options));
+    });
+
+  cli.parse(["node", "skm", ...normalizeDashPrefixedOptionValues(argv)], { run: true });
+
+  if (execution) {
+    return await execution;
   }
 
-  return parsed;
-}
-
-async function dispatch(
-  parsed: ParsedCli,
-  cwd: string,
-  env: NodeJS.ProcessEnv,
-): Promise<CliResult> {
-  if (parsed.command === "help") {
-    return buildHelpResult(parsed.positional[0]);
+  const unknownGlobalOption = findUnknownGlobalOption(cli.options);
+  if (unknownGlobalOption && !cli.args[0]) {
+    throw new SkmError(formatUnknownOption(unknownGlobalOption), 2);
   }
-  if (parsed.version) {
+
+  if (cli.options.version) {
     return buildVersionResult();
   }
-  if (parsed.help) {
-    return buildHelpResult(parsed.command);
-  }
-  if (!parsed.command) {
-    return buildHelpResult();
+
+  if (cli.options.help) {
+    return buildHelpResult(typeof cli.args[0] === "string" ? cli.args[0] : undefined);
   }
 
-  const homeDir = env.HOME;
-  const githubBaseUrl = env.SKM_GITHUB_BASE_URL;
-  const xdgConfigHome = env.XDG_CONFIG_HOME;
-
-  switch (parsed.command) {
-    case "init":
-      if (parsed.outputDirSpecified && !parsed.outputDir) {
-        throw new SkmError(
-          "Usage: skm init [--project|--global] [--force] [--output-dir <path>]",
-          2,
-        );
-      }
-      return runInitCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        force: parsed.force,
-        outputDir: parsed.outputDir,
-      });
-    case "add":
-      if (!parsed.positional[0]) {
-        throw new SkmError("Usage: skm add <source>", 2);
-      }
-      return runAddCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        source: parsed.positional[0],
-        canonicalName: parsed.alias ? validateCanonicalName(parsed.alias) : undefined,
-        requestedRef: parsed.ref,
-        githubBaseUrl,
-      });
-    case "remove":
-      if (!parsed.positional[0]) {
-        throw new SkmError("Usage: skm remove <name>", 2);
-      }
-      return runRemoveCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        canonicalName: validateCanonicalName(parsed.positional[0]),
-      });
-    case "rename":
-      if (!parsed.positional[0] || !parsed.positional[1]) {
-        throw new SkmError("Usage: skm rename <old-name> <new-name>", 2);
-      }
-      return runRenameCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        oldName: validateCanonicalName(parsed.positional[0]),
-        newName: validateCanonicalName(parsed.positional[1]),
-      });
-    case "install":
-      return runInstallCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        githubBaseUrl,
-      });
-    case "update":
-      return runUpdateCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        canonicalName: parsed.positional[0] ? validateCanonicalName(parsed.positional[0]) : undefined,
-        force: parsed.force,
-        githubBaseUrl,
-      });
-    case "list":
-      return runListCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        all: parsed.all,
-      });
-    case "inspect":
-      if (!parsed.positional[0]) {
-        throw new SkmError("Usage: skm inspect <name>", 2);
-      }
-      return runInspectCommand({
-        cwd,
-        homeDir,
-        xdgConfigHome,
-        scope: parsed.scope,
-        canonicalName: validateCanonicalName(parsed.positional[0]),
-      });
-    case "version":
-      return buildVersionResult();
-    default:
-      throw new SkmError(`Unknown command: ${parsed.command}`, 2);
+  if (cli.args[0]) {
+    throw new SkmError(`Unknown command: ${cli.args[0]}`, 2);
   }
+
+  return buildHelpResult();
+}
+
+function registerGlobalOptions(cli: ReturnType<typeof cac>): void {
+  cli.option("-h, --help", "Display help");
+  cli.option("-v, --version", "Display version");
+  cli.option("--project", "Use project scope");
+  cli.option("--global", "Use global scope");
+}
+
+function normalizeDashPrefixedOptionValues(argv: string[]): string[] {
+  const normalized: string[] = [];
+  const optionsWithValues = new Set(["--as", "--output-dir", "--outputDir", "--ref"]);
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const current = argv[index];
+    if (current === undefined) {
+      continue;
+    }
+    if (current === "--") {
+      normalized.push(...argv.slice(index));
+      break;
+    }
+    const next = argv[index + 1];
+    if (
+      current &&
+      optionsWithValues.has(current) &&
+      next &&
+      /^-[^-]/.test(next)
+    ) {
+      normalized.push(`${current}=${next}`);
+      index += 1;
+      continue;
+    }
+    normalized.push(current);
+  }
+
+  return normalized;
+}
+
+async function runInit(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  options: InitOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("init");
+  }
+
+  return runInitCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    force: Boolean(options.force),
+    outputDir: options.outputDir,
+  });
+}
+
+async function runAdd(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  source: string | undefined,
+  options: AddOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("add");
+  }
+  if (!source) {
+    throw new SkmError("Usage: skm add <source>", 2);
+  }
+
+  return runAddCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    source,
+    canonicalName: options.as ? validateCanonicalName(options.as) : undefined,
+    requestedRef: options.ref,
+    githubBaseUrl: env.SKM_GITHUB_BASE_URL,
+  });
+}
+
+async function runRemove(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  name: string | undefined,
+  options: ScopeOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("remove");
+  }
+  if (!name) {
+    throw new SkmError("Usage: skm remove <name>", 2);
+  }
+
+  return runRemoveCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    canonicalName: validateCanonicalName(name),
+  });
+}
+
+async function runRename(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  oldName: string | undefined,
+  newName: string | undefined,
+  options: ScopeOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("rename");
+  }
+  if (!oldName || !newName) {
+    throw new SkmError("Usage: skm rename <old-name> <new-name>", 2);
+  }
+
+  return runRenameCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    oldName: validateCanonicalName(oldName),
+    newName: validateCanonicalName(newName),
+  });
+}
+
+async function runInstall(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  options: ScopeOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("install");
+  }
+
+  return runInstallCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    githubBaseUrl: env.SKM_GITHUB_BASE_URL,
+  });
+}
+
+async function runUpdate(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  name: string | undefined,
+  options: UpdateOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("update");
+  }
+
+  return runUpdateCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    canonicalName: name ? validateCanonicalName(name) : undefined,
+    force: Boolean(options.force),
+    githubBaseUrl: env.SKM_GITHUB_BASE_URL,
+  });
+}
+
+async function runList(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  options: ListOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("list");
+  }
+
+  return runListCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    all: Boolean(options.all),
+  });
+}
+
+async function runInspect(
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  name: string | undefined,
+  options: ScopeOptions,
+): Promise<CliResult> {
+  if (options.version) {
+    return buildVersionResult();
+  }
+  if (options.help) {
+    return buildHelpResult("inspect");
+  }
+  if (!name) {
+    throw new SkmError("Usage: skm inspect <name>", 2);
+  }
+
+  return runInspectCommand({
+    cwd,
+    homeDir: env.HOME,
+    xdgConfigHome: env.XDG_CONFIG_HOME,
+    scope: resolveScope(options),
+    canonicalName: validateCanonicalName(name),
+  });
+}
+
+function resolveScope(options: ScopeOptions): "global" | "project" | undefined {
+  if (options.global) {
+    return "global";
+  }
+  if (options.project) {
+    return "project";
+  }
+  return undefined;
+}
+
+function findUnknownGlobalOption(options: Record<string, unknown>): string | undefined {
+  const knownGlobalOptions = new Set(["--", "global", "h", "help", "project", "v", "version"]);
+  return Object.keys(options).find((name) => !knownGlobalOptions.has(name));
+}
+
+function formatUnknownOption(name: string): string {
+  return `Unknown option \`${name.length > 1 ? `--${name}` : `-${name}`}\``;
+}
+
+function isCacError(error: unknown): error is Error {
+  return error instanceof Error && error.constructor.name === "CACError";
 }
 
 function buildHelpResult(command?: string): CliResult {
