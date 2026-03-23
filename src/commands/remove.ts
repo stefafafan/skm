@@ -1,5 +1,4 @@
-import path from "node:path";
-
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { removeIfExists } from "../fs";
 import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
@@ -21,6 +20,7 @@ export async function runRemoveCommand(options: {
   });
   const manifest = await readManifest(scope.manifestPath);
   const lockfile = await readLockfile(scope.lockfilePath);
+  validateCanonicalName(options.canonicalName);
   if (!(options.canonicalName in manifest.skills)) {
     throw new SkmError(`Skill ${options.canonicalName} not found in ${scope.kind} scope`, 1);
   }
@@ -28,7 +28,7 @@ export async function runRemoveCommand(options: {
   delete lockfile.skills[options.canonicalName];
   await writeManifest(scope.manifestPath, manifest);
   await writeLockfile(scope.lockfilePath, lockfile);
-  await removeIfExists(path.join(scope.generatedSkillsDir, options.canonicalName));
+  await removeIfExists(resolveCanonicalSkillPath(scope.generatedSkillsDir, options.canonicalName));
   return {
     kind: "summary",
     command: "remove",

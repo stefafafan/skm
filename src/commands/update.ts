@@ -2,6 +2,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { validateCanonicalName } from "../canonical-name";
 import { SkmError } from "../errors";
 import { removeIfExists } from "../fs";
 import { hashDirectory } from "../hash";
@@ -29,13 +30,19 @@ export async function runUpdateCommand(options: {
   });
   const manifest = await readManifest(scope.manifestPath);
   const lockfile = await readLockfile(scope.lockfilePath);
-  const names = options.canonicalName ? [options.canonicalName] : Object.keys(manifest.skills);
+  const names = options.canonicalName
+    ? [validateCanonicalName(options.canonicalName)]
+    : Object.keys(manifest.skills);
+  if (options.canonicalName && !manifest.skills[options.canonicalName]) {
+    throw new SkmError(`Skill ${options.canonicalName} not found in ${scope.kind} scope`, 1);
+  }
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "skm-update-"));
   const updatedSkills: CliSkillSummary[] = [];
 
   try {
     let updatedCount = 0;
     for (const name of names) {
+      validateCanonicalName(name);
       const entry = manifest.skills[name];
       if (!entry) {
         continue;

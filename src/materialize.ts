@@ -1,6 +1,7 @@
 import { readFile, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { resolveCanonicalSkillPath, validateCanonicalName } from "./canonical-name";
 import { SkmError } from "./errors";
 import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs";
 import { MaterializationStrategy } from "./manifest";
@@ -19,7 +20,8 @@ export async function materializeSkill(options: MaterializeSkillOptions): Promis
     path.join(options.sourceDir, "SKILL.md"),
     `Skill source ${options.manifestSource} SKILL.md`,
   );
-  const outputDir = path.join(options.generatedSkillsDir, options.canonicalName);
+  const canonicalName = validateCanonicalName(options.canonicalName);
+  const outputDir = resolveCanonicalSkillPath(options.generatedSkillsDir, canonicalName);
   await ensureDir(options.generatedSkillsDir);
   await removeIfExists(outputDir);
 
@@ -33,7 +35,7 @@ export async function materializeSkill(options: MaterializeSkillOptions): Promis
   if (options.strategy === "wrap") {
     const wrapped = await wrapSkillMarkdown(
       path.join(outputDir, "SKILL.md"),
-      options.canonicalName,
+      canonicalName,
     );
     await writeFile(path.join(outputDir, "SKILL.md"), wrapped);
   } else if (!(await pathExists(path.join(outputDir, "SKILL.md")))) {

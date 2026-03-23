@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { validateCanonicalName } from "./canonical-name";
 import { runAddCommand } from "./commands/add";
 import { runInitCommand } from "./commands/init";
 import { runInspectCommand } from "./commands/inspect";
@@ -176,7 +177,7 @@ async function dispatch(
         xdgConfigHome,
         scope: parsed.scope,
         source: parsed.positional[0],
-        canonicalName: parsed.alias,
+        canonicalName: parsed.alias ? validateCanonicalName(parsed.alias) : undefined,
         requestedRef: parsed.ref,
         githubBaseUrl,
       });
@@ -189,7 +190,7 @@ async function dispatch(
         homeDir,
         xdgConfigHome,
         scope: parsed.scope,
-        canonicalName: parsed.positional[0],
+        canonicalName: validateCanonicalName(parsed.positional[0]),
       });
     case "rename":
       if (!parsed.positional[0] || !parsed.positional[1]) {
@@ -200,8 +201,8 @@ async function dispatch(
         homeDir,
         xdgConfigHome,
         scope: parsed.scope,
-        oldName: parsed.positional[0],
-        newName: parsed.positional[1],
+        oldName: validateCanonicalName(parsed.positional[0]),
+        newName: validateCanonicalName(parsed.positional[1]),
       });
     case "install":
       return runInstallCommand({
@@ -217,7 +218,7 @@ async function dispatch(
         homeDir,
         xdgConfigHome,
         scope: parsed.scope,
-        canonicalName: parsed.positional[0],
+        canonicalName: parsed.positional[0] ? validateCanonicalName(parsed.positional[0]) : undefined,
         force: parsed.force,
         githubBaseUrl,
       });
@@ -238,7 +239,7 @@ async function dispatch(
         homeDir,
         xdgConfigHome,
         scope: parsed.scope,
-        canonicalName: parsed.positional[0],
+        canonicalName: validateCanonicalName(parsed.positional[0]),
       });
     case "version":
       return buildVersionResult();

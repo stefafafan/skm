@@ -257,6 +257,34 @@ test("skm add stores resolved metadata and materializes the wrapped skill", asyn
   await fixture.cleanup();
 });
 
+test("skm add rejects unsafe canonical names passed with --as", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const result = runCli(
+    [
+      "add",
+      "https://example.com/example/skills/tree/main/skills/hello-skill",
+      "--project",
+      "--as",
+      "../../escaped-skill",
+    ],
+    {
+      cwd: workspace,
+      env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+    },
+  );
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid canonical name/i);
+  await assert.rejects(() => stat(path.join(workspace, "escaped-skill")));
+  await fixture.cleanup();
+});
+
 test("skm add materializes into the manifest outputDir", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -452,6 +480,29 @@ test("skm add fails when repo-wide imports discover duplicate basenames", async 
   await fixture.cleanup();
 });
 
+test("skm add rejects repo-wide imports that discover unsafe canonical names", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createGitHubRepoFixture([
+    {
+      path: "skills/..\\escaped-skill",
+      skillMd: ["---", "name: bad", "description: bad", "---", "", "# Bad", ""].join("\n"),
+    },
+  ]);
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const result = runCli(["add", "example/skills", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid canonical name/i);
+  await fixture.cleanup();
+});
+
 test("skm install rebuilds generated output from the stored manifest entry", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -532,6 +583,35 @@ test("skm install resolves manual manifest edits into the lockfile and prunes re
   );
   assert.deepEqual(nextLockfile.skills, {});
   await assert.rejects(() => stat(path.join(workspace, ".agents", "skills", "manual-skill")));
+  await fixture.cleanup();
+});
+
+test("skm install rejects unsafe canonical names from the manifest", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  await writeJsonFile(path.join(workspace, "skills.json"), {
+    skills: {
+      "../../escaped-skill": {
+        source: "https://example.com/example/skills/tree/main/skills/hello-skill",
+        requested: "main",
+        strategy: "wrap",
+      },
+    },
+  });
+
+  const result = runCli(["install", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid canonical name/i);
+  await assert.rejects(() => stat(path.join(workspace, "escaped-skill")));
   await fixture.cleanup();
 });
 
@@ -676,6 +756,23 @@ test("skm update skips fixed commit refs unless --force is supplied", async () =
   await fixture.cleanup();
 });
 
+test("skm update reports an error for a missing skill name", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+
+  const result = runCli(["update", "missing-skill", "--project"], {
+    cwd: workspace,
+    env: { HOME: home },
+  });
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Skill missing-skill not found in project scope/);
+});
+
 test("skm inspect shows override state and skm remove deletes the generated skill directory", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
@@ -771,6 +868,36 @@ test("skm rename changes the manifest key and rematerializes the wrapped skill",
     env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
   });
   assert.equal(oldInspect.code, 1);
+  await fixture.cleanup();
+});
+
+test("skm rename rejects unsafe target canonical names", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  assert.equal(
+    runCli(
+      ["add", "https://example.com/example/skills/tree/main/skills/hello-skill", "--project"],
+      {
+        cwd: workspace,
+        env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+      },
+    ).code,
+    0,
+  );
+
+  const result = runCli(["rename", "hello-skill", "../../escaped-skill", "--project"], {
+    cwd: workspace,
+    env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+  });
+
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /invalid canonical name/i);
+  await assert.rejects(() => stat(path.join(workspace, "escaped-skill")));
   await fixture.cleanup();
 });
 

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { validateCanonicalName } from "./canonical-name";
 import { SkmError } from "./errors";
 import { assertRegularFile, copyDirectory, removeIfExists } from "./fs";
 import { cloneAndCheckout, readHeadCommit } from "./git";
@@ -83,7 +84,7 @@ export async function fetchSkillToTempDir(
   }
 
   const workingRoot = tempRoot ?? (await mkdtemp(path.join(os.tmpdir(), "skm-fetch-")));
-  const outputDir = path.join(workingRoot, options.source.defaultName);
+  const outputDir = path.join(workingRoot, validateCanonicalName(options.source.defaultName));
   const checkedOut = await checkoutSourceRepo(options, workingRoot);
   const upstreamSkillDir = path.join(checkedOut.checkoutDir, options.source.subpath);
   const skillMdPath = path.join(upstreamSkillDir, "SKILL.md");
@@ -147,9 +148,10 @@ export async function discoverSkillsInRepo(repoDir: string): Promise<DiscoveredS
     const hasSkill = skillMdEntry?.isFile() ?? false;
     if (hasSkill) {
       const relativeDir = path.relative(repoDir, currentDir) || ".";
+      const canonicalName = validateCanonicalName(path.basename(currentDir));
       discovered.set(relativeDir, {
         relativeDir,
-        canonicalName: path.basename(currentDir),
+        canonicalName,
         absoluteDir: currentDir,
       });
     }
