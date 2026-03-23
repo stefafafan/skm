@@ -33,6 +33,9 @@ export async function runUpdateCommand(options: {
   const names = options.canonicalName
     ? [validateCanonicalName(options.canonicalName)]
     : Object.keys(manifest.skills);
+  if (options.canonicalName && !manifest.skills[options.canonicalName]) {
+    throw new SkmError(`Skill ${options.canonicalName} not found in ${scope.kind} scope`, 1);
+  }
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "skm-update-"));
   const updatedSkills: CliSkillSummary[] = [];
 

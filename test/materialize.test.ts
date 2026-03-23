@@ -118,3 +118,36 @@ test("materializeSkill rejects unsafe canonical names", async () => {
   );
   await assert.rejects(access(path.join(root, "escaped-skill")));
 });
+
+test("materializeSkill rejects canonical names with control or windows-hostile characters", async () => {
+  const root = await createTempDir("skm-materialize-");
+  const sourceDir = path.join(root, "source");
+  const generatedDir = path.join(root, ".agents", "skills");
+  await mkdir(sourceDir, { recursive: true });
+  await writeFile(path.join(sourceDir, "SKILL.md"), "# Hello\n");
+
+  await assert.rejects(
+    () =>
+      materializeSkill({
+        canonicalName: "bad:name",
+        sourceDir,
+        generatedSkillsDir: generatedDir,
+        manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+        resolved: "abc123def456",
+        strategy: "wrap",
+      }),
+    /invalid canonical name/i,
+  );
+  await assert.rejects(
+    () =>
+      materializeSkill({
+        canonicalName: "bad\u0000name",
+        sourceDir,
+        generatedSkillsDir: generatedDir,
+        manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+        resolved: "abc123def456",
+        strategy: "wrap",
+      }),
+    /invalid canonical name/i,
+  );
+});

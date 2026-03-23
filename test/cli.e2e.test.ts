@@ -756,6 +756,23 @@ test("skm update skips fixed commit refs unless --force is supplied", async () =
   await fixture.cleanup();
 });
 
+test("skm update reports an error for a missing skill name", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+
+  const result = runCli(["update", "missing-skill", "--project"], {
+    cwd: workspace,
+    env: { HOME: home },
+  });
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Skill missing-skill not found in project scope/);
+});
+
 test("skm inspect shows override state and skm remove deletes the generated skill directory", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");

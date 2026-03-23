@@ -15,6 +15,10 @@ export function validateCanonicalName(canonicalName: string): string {
     throw new SkmError(`Invalid canonical name: ${canonicalName}`, 2);
   }
 
+  if (/[\u0000-\u001f\u007f<>:"|?*]/.test(canonicalName)) {
+    throw new SkmError(`Invalid canonical name: ${canonicalName}`, 2);
+  }
+
   return canonicalName;
 }
 
