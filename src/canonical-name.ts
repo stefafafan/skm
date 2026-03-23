@@ -15,7 +15,7 @@ export function validateCanonicalName(canonicalName: string): string {
     throw new SkmError(`Invalid canonical name: ${canonicalName}`, 2);
   }
 
-  if (/[\u0000-\u001f\u007f<>:"|?*]/.test(canonicalName)) {
+  if (containsControlOrWindowsHostileCharacters(canonicalName)) {
     throw new SkmError(`Invalid canonical name: ${canonicalName}`, 2);
   }
 
@@ -27,4 +27,18 @@ export function resolveCanonicalSkillPath(
   canonicalName: string,
 ): string {
   return path.join(generatedSkillsDir, validateCanonicalName(canonicalName));
+}
+
+function containsControlOrWindowsHostileCharacters(value: string): boolean {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
+    if ("<>:\"|?*".includes(char)) {
+      return true;
+    }
+  }
+
+  return false;
 }
