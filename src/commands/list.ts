@@ -2,11 +2,11 @@ import { mergeSkillState, readLockfile, readManifest, ResolvedSkillEntry } from 
 import { type CliListResult, type CliListRow } from "../output";
 import { findProjectRoot, globalScope, projectScope, resolveScope } from "../scope";
 
-interface ListedSkill {
+type ListedSkill = {
   name: string;
   scope: "global" | "project";
   entry: ResolvedSkillEntry;
-}
+};
 
 export async function runListCommand(options: {
   cwd: string;

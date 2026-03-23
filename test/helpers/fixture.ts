@@ -5,25 +5,25 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-export interface CliResult {
+export type CliResult = {
   code: number;
   stdout: string;
   stderr: string;
-}
+};
 
-export interface SkillRepoFixture {
+export type SkillRepoFixture = {
   readonly remoteRoot: string;
   readonly workspaceRoot: string;
   readonly commit: string;
   updateSkill(contents: { skillMd?: string; extraFiles?: Record<string, string> }): string;
   cleanup(): Promise<void>;
-}
+};
 
-export interface RepoSkillFile {
+export type RepoSkillFile = {
   path: string;
   skillMd: string;
   extraFiles?: Record<string, string>;
-}
+};
 
 export async function createTempDir(prefix: string): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), prefix));

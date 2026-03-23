@@ -15,40 +15,40 @@ import { SkmError, isSkmError } from "./errors";
 import { renderCliResultAsText, type CliResult } from "./output";
 import { renderCliResultWithInk } from "./ui/render";
 
-interface SharedOptions {
+type SharedOptions = {
   help: boolean;
   version: boolean;
-}
+};
 
-interface ScopeOptions extends SharedOptions {
+type ScopeOptions = SharedOptions & {
   global?: boolean;
   project?: boolean;
-}
+};
 
-interface InitOptions extends ScopeOptions {
+type InitOptions = ScopeOptions & {
   force?: boolean;
   outputDir?: string;
-}
+};
 
-interface AddOptions extends ScopeOptions {
+type AddOptions = ScopeOptions & {
   as?: string;
   ref?: string;
-}
+};
 
-interface UpdateOptions extends ScopeOptions {
+type UpdateOptions = ScopeOptions & {
   force?: boolean;
-}
+};
 
-interface ListOptions extends ScopeOptions {
+type ListOptions = ScopeOptions & {
   all?: boolean;
-}
+};
 
-interface MainContext {
+type MainContext = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   stdoutIsTTY?: boolean;
   stdoutColumns?: number;
-}
+};
 
 export async function main(argv: string[], context?: MainContext): Promise<number> {
   const cwd = context?.cwd ?? process.cwd();

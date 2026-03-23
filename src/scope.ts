@@ -6,7 +6,7 @@ import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest";
 
 export type ScopeKind = "global" | "project";
 
-export interface ScopePaths {
+export type ScopePaths = {
   kind: ScopeKind;
   rootDir: string;
   outputBaseDir: string;
@@ -15,15 +15,15 @@ export interface ScopePaths {
   stateDir: string;
   storeDir: string;
   generatedSkillsDir: string;
-}
+};
 
-export interface ResolveScopeOptions {
+export type ResolveScopeOptions = {
   cwd: string;
   homeDir?: string;
   explicitScope?: ScopeKind;
   allowCreateProject?: boolean;
   xdgConfigHome?: string;
-}
+};
 
 export async function resolveScope(options: ResolveScopeOptions): Promise<ScopePaths> {
   const homeDir = options.homeDir ?? process.env.HOME;

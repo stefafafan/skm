@@ -8,7 +8,7 @@ import type {
   CliSummaryResult,
 } from "../output";
 
-interface InkComponentProps {
+type InkComponentProps = {
   children?: React.ReactNode;
   key?: string;
   bold?: boolean;
@@ -16,13 +16,13 @@ interface InkComponentProps {
   dimColor?: boolean;
   flexDirection?: "column" | "row";
   marginLeft?: number;
-}
+};
 
-interface InkModule {
+type InkModule = {
   renderToString(node: React.ReactNode, options?: { columns?: number }): string;
   Box: React.ComponentType<InkComponentProps>;
   Text: React.ComponentType<InkComponentProps>;
-}
+};
 
 const nativeImport = new Function("specifier", "return import(specifier);") as (
   specifier: string,

@@ -1,5 +1,8 @@
 {
   "categories": {
     "correctness": "error"
+  },
+  "rules": {
+    "typescript/consistent-type-definitions": ["error", "type"]
   }
 }

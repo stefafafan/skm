@@ -8,7 +8,7 @@ import { SkmError } from "./errors";
 import { assertRegularFile, copyDirectory, removeIfExists } from "./fs";
 import { cloneAndCheckout, readHeadCommit, runGit } from "./git";
 
-export interface GithubTreeSource {
+export type GithubTreeSource = {
   kind: "github-tree";
   raw: string;
   owner: string;
@@ -18,42 +18,42 @@ export interface GithubTreeSource {
   ref: string;
   subpath: string;
   defaultName: string;
-}
+};
 
-export interface GithubRepoSource {
+export type GithubRepoSource = {
   kind: "github-repo";
   raw: string;
   owner: string;
   repo: string;
   urlBase?: string;
-}
+};
 
 export type ParsedSource = GithubTreeSource | GithubRepoSource;
 
-export interface FetchSkillOptions {
+export type FetchSkillOptions = {
   source: ParsedSource;
   requestedRef: string;
   requestedRefExplicit?: boolean;
   checkoutRef?: string;
   githubBaseUrl?: string;
-}
+};
 
-export interface FetchedSkill {
+export type FetchedSkill = {
   skillDir: string;
   resolved: string;
   requestedRef: string;
-}
+};
 
-export interface CheckedOutRepo {
+export type CheckedOutRepo = {
   checkoutDir: string;
   resolved: string;
-}
+};
 
-export interface DiscoveredSkill {
+export type DiscoveredSkill = {
   relativeDir: string;
   canonicalName: string;
   absoluteDir: string;
-}
+};
 
 export function parseSource(input: string): ParsedSource {
   const parsedUrlSource = parseHttpsGitHubSource(input);

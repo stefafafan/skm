@@ -4,16 +4,16 @@ import path from "node:path";
 import { resolveCanonicalSkillPath, validateCanonicalName } from "./canonical-name";
 import { SkmError } from "./errors";
 import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs";
-import { MaterializationStrategy } from "./manifest";
+import type { MaterializationStrategy } from "./manifest";
 
-export interface MaterializeSkillOptions {
+export type MaterializeSkillOptions = {
   canonicalName: string;
   sourceDir: string;
   generatedSkillsDir: string;
   manifestSource: string;
   resolved: string;
   strategy: MaterializationStrategy;
-}
+};
 
 export async function materializeSkill(options: MaterializeSkillOptions): Promise<string> {
   await assertRegularFile(
