@@ -1,12 +1,12 @@
 import { mkdtemp, readdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 
 import { validateCanonicalName } from "./canonical-name";
 import { SkmError } from "./errors";
 import { assertRegularFile, copyDirectory, removeIfExists } from "./fs";
-import { cloneAndCheckout, readHeadCommit } from "./git";
+import { cloneAndCheckout, readHeadCommit, runGit } from "./git";
 
 export interface GithubTreeSource {
   kind: "github-tree";
@@ -14,6 +14,7 @@ export interface GithubTreeSource {
   owner: string;
   repo: string;
   urlBase?: string;
+  treePath: string;
   ref: string;
   subpath: string;
   defaultName: string;
@@ -32,12 +33,14 @@ export type ParsedSource = GithubTreeSource | GithubRepoSource;
 export interface FetchSkillOptions {
   source: ParsedSource;
   requestedRef: string;
+  requestedRefExplicit?: boolean;
   githubBaseUrl?: string;
 }
 
 export interface FetchedSkill {
   skillDir: string;
   resolved: string;
+  requestedRef: string;
 }
 
 export interface CheckedOutRepo {
@@ -84,9 +87,15 @@ export async function fetchSkillToTempDir(
   }
 
   const workingRoot = tempRoot ?? (await mkdtemp(path.join(os.tmpdir(), "skm-fetch-")));
-  const outputDir = path.join(workingRoot, validateCanonicalName(options.source.defaultName));
   const checkedOut = await checkoutSourceRepo(options, workingRoot);
-  const upstreamSkillDir = path.join(checkedOut.checkoutDir, options.source.subpath);
+  const resolvedTreeSource = await resolveTreeSourceLocation(
+    checkedOut.checkoutDir,
+    options.source,
+    options.requestedRef,
+    options.requestedRefExplicit ?? false,
+  );
+  const outputDir = path.join(workingRoot, validateCanonicalName(resolvedTreeSource.defaultName));
+  const upstreamSkillDir = path.join(checkedOut.checkoutDir, resolvedTreeSource.subpath);
   const skillMdPath = path.join(upstreamSkillDir, "SKILL.md");
   await assertRegularFile(skillMdPath, `Skill source ${options.source.raw} SKILL.md`);
 
@@ -96,6 +105,7 @@ export async function fetchSkillToTempDir(
   return {
     skillDir: outputDir,
     resolved: checkedOut.resolved,
+    requestedRef: resolvedTreeSource.ref,
   };
 }
 
@@ -124,7 +134,22 @@ export async function checkoutSourceRepo(
   const repoUrl = resolveRepoUrl(options.source, options.githubBaseUrl);
 
   await removeIfExists(checkoutDir);
-  await cloneAndCheckout(repoUrl, options.requestedRef, checkoutDir);
+  await cloneAndCheckout(repoUrl, "HEAD", checkoutDir);
+  if (options.source.kind === "github-tree") {
+    const resolvedTreeSource = await resolveTreeSourceLocation(
+      checkoutDir,
+      options.source,
+      options.requestedRef,
+      options.requestedRefExplicit ?? false,
+    );
+    const resolvedCommit = await resolveGitCommit(checkoutDir, resolvedTreeSource.ref);
+    if (!resolvedCommit) {
+      throw new SkmError(`Unable to resolve git ref: ${resolvedTreeSource.ref}`, 3);
+    }
+    await runGit(["checkout", "--quiet", "--detach", resolvedCommit], checkoutDir);
+  } else {
+    await runGit(["checkout", "--quiet", options.requestedRef], checkoutDir);
+  }
 
   return {
     checkoutDir,
@@ -206,6 +231,7 @@ function parseHttpsGitHubSource(input: string): ParsedSource | undefined {
   if (segments.length >= 5 && segments[2] === "tree") {
     const [owner, repo, , ref, ...subpathSegments] = segments;
     const subpath = subpathSegments.join("/");
+    const treePath = segments.slice(3).join("/");
     if (!owner || !repo || !ref || !subpath) {
       throw new SkmError(`Invalid GitHub source: ${input}`, 2);
     }
@@ -215,6 +241,7 @@ function parseHttpsGitHubSource(input: string): ParsedSource | undefined {
       owner,
       repo,
       urlBase: url.origin,
+      treePath,
       ref,
       subpath,
       defaultName: path.basename(subpath),
@@ -229,4 +256,73 @@ function resolveCanonicalGithubBaseUrl(source: GithubRepoSource | GithubTreeSour
     /\/$/,
     "",
   );
+}
+
+async function resolveTreeSourceLocation(
+  repoDir: string,
+  source: GithubTreeSource,
+  requestedRef: string,
+  requestedRefExplicit: boolean,
+): Promise<GithubTreeSource> {
+  const treePath = source.treePath;
+
+  if (requestedRefExplicit) {
+    const explicitSubpath = inferSubpathForExplicitRef(source, requestedRef);
+    const resolvedCommit = await resolveGitCommit(repoDir, requestedRef);
+    if (!resolvedCommit) {
+      throw new SkmError(`Unable to resolve git ref: ${requestedRef}`, 3);
+    }
+    return {
+      ...source,
+      ref: requestedRef,
+      subpath: explicitSubpath,
+      defaultName: path.basename(explicitSubpath),
+    };
+  }
+
+  const treeSegments = treePath.split("/");
+  for (let index = treeSegments.length - 1; index >= 1; index -= 1) {
+    const candidateRef = treeSegments.slice(0, index).join("/");
+    const candidateSubpath = treeSegments.slice(index).join("/");
+    if (!candidateSubpath) {
+      continue;
+    }
+
+    if (await resolveGitCommit(repoDir, candidateRef)) {
+      return {
+        ...source,
+        ref: candidateRef,
+        subpath: candidateSubpath,
+        defaultName: path.basename(candidateSubpath),
+      };
+    }
+  }
+
+  throw new SkmError(`Unable to resolve ref and subpath from source: ${source.raw}`, 2);
+}
+
+function inferSubpathForExplicitRef(source: GithubTreeSource, requestedRef: string): string {
+  if (source.treePath.startsWith(`${requestedRef}/`)) {
+    return source.treePath.slice(requestedRef.length + 1);
+  }
+
+  if (source.subpath) {
+    return source.subpath;
+  }
+
+  throw new SkmError(`Unable to resolve subpath for source: ${source.raw}`, 2);
+}
+
+async function resolveGitCommit(repoDir: string, ref: string): Promise<string | undefined> {
+  const candidates = [ref, `origin/${ref}`, `refs/remotes/origin/${ref}`, `refs/tags/${ref}`];
+  for (const candidate of candidates) {
+    try {
+      return (
+        await runGit(["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`], repoDir)
+      ).trim();
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
 }

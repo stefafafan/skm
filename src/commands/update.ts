@@ -51,7 +51,12 @@ export async function runUpdateCommand(options: {
       if (!lockEntry) {
         throw new SkmError(`Skill ${name} is missing lockfile state`, 2);
       }
-      const requestedRef = entry.requested ?? defaultRequestedRef(parseSource(entry.source));
+      const parsedSource = parseSource(entry.source);
+      const requestedRef = entry.requested ?? defaultRequestedRef(parsedSource);
+      const requestedRefExplicit =
+        parsedSource.kind === "github-tree" &&
+        entry.requested !== undefined &&
+        entry.requested !== parsedSource.ref;
       if (isFixedRef(requestedRef) && !options.force) {
         updatedSkills.push({
           name,
@@ -65,8 +70,9 @@ export async function runUpdateCommand(options: {
       }
       const fetched = await fetchSkillToTempDir(
         {
-          source: parseSource(entry.source),
+          source: parsedSource,
           requestedRef,
+          requestedRefExplicit,
           githubBaseUrl: options.githubBaseUrl,
         },
         tempRoot,
@@ -87,7 +93,7 @@ export async function runUpdateCommand(options: {
         name,
         status: "updated",
         source: entry.source,
-        requested: requestedRef,
+        requested: fetched.requestedRef,
         resolved: lockEntry.resolved,
         integrity,
       });
