@@ -98,11 +98,15 @@ async function resolveManifestOutputDir(scope: ScopePaths, baseDir: string): Pro
     return scope;
   }
 
-  const manifest = await readManifest(scope.manifestPath);
-  return {
-    ...scope,
-    generatedSkillsDir: resolveOutputDir(baseDir, manifest.outputDir),
-  };
+  try {
+    const manifest = await readManifest(scope.manifestPath);
+    return {
+      ...scope,
+      generatedSkillsDir: resolveOutputDir(baseDir, manifest.outputDir),
+    };
+  } catch {
+    return scope;
+  }
 }
 
 function resolveOutputDir(baseDir: string, outputDir: string): string {
