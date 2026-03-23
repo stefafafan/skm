@@ -38,7 +38,21 @@ async function resolveCheckoutCommit(repoDir: string, ref: string): Promise<stri
     throw new SkmError(`Invalid git ref: ${ref}`, 3);
   }
 
-  return (
-    await runGit(["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`], repoDir)
-  ).trim();
+  let lastError: SkmError | undefined;
+  for (const candidate of [
+    ref,
+    `refs/tags/${ref}`,
+    `refs/heads/${ref}`,
+    `refs/remotes/origin/${ref}`,
+  ]) {
+    try {
+      return (
+        await runGit(["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`], repoDir)
+      ).trim();
+    } catch (error) {
+      lastError = error as SkmError;
+    }
+  }
+
+  throw lastError ?? new SkmError(`Unable to resolve git ref: ${ref}`, 3);
 }

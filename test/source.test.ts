@@ -178,6 +178,26 @@ test("fetchSkillToTempDir accepts tag refs and fixed commit refs", async () => {
   await fixture.cleanup();
 });
 
+test("fetchSkillToTempDir resolves a branch ref from origin when the clone has no local branch", async () => {
+  const fixture = await createSkillRepoFixture();
+  const tempRoot = await createTempDir("skm-fetch-");
+  const bareRepo = path.join(fixture.remoteRoot, "example", "skills.git");
+
+  git(["symbolic-ref", "HEAD", "refs/heads/master"], bareRepo);
+
+  const fetched = await fetchSkillToTempDir(
+    {
+      source: parseSource("https://example.com/example/skills/tree/main/skills/hello-skill"),
+      requestedRef: "main",
+      githubBaseUrl: fixture.remoteRoot,
+    },
+    tempRoot,
+  );
+
+  assert.equal(fetched.resolved, fixture.commit);
+  await fixture.cleanup();
+});
+
 function git(args: string[], cwd: string): string {
   const gitArgs = args[0] === "commit" ? ["-c", "commit.gpgsign=false", ...args] : args;
   const result = spawnSync("git", gitArgs, {
