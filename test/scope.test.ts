@@ -27,6 +27,25 @@ test("resolveScope defaults to project scope when an ancestor skills.json exists
   assert.equal(scope.generatedSkillsDir, path.join(projectRoot, ".agents", "skills"));
 });
 
+test("resolveScope uses the manifest outputDir for project scope", async () => {
+  const root = await createTempDir("skm-scope-");
+  const projectRoot = path.join(root, "repo");
+  const nested = path.join(projectRoot, "packages", "feature");
+  await mkdir(nested, { recursive: true });
+  await writeJsonFile(path.join(projectRoot, "skills.json"), {
+    outputDir: ".myagent/skills",
+    skills: {},
+  });
+
+  const scope = await resolveScope({
+    cwd: nested,
+    homeDir: path.join(root, "home"),
+  });
+
+  assert.equal(scope.kind, "project");
+  assert.equal(scope.generatedSkillsDir, path.join(projectRoot, ".myagent", "skills"));
+});
+
 test("resolveScope falls back to global scope when there is no project manifest", async () => {
   const root = await createTempDir("skm-scope-");
   const cwd = path.join(root, "workspace");
@@ -41,6 +60,24 @@ test("resolveScope falls back to global scope when there is no project manifest"
   assert.equal(scope.manifestPath, path.join(root, "home", ".config", "skm", "skills.json"));
   assert.equal(scope.lockfilePath, path.join(root, "home", ".config", "skm", "skills.lock.json"));
   assert.equal(scope.generatedSkillsDir, path.join(root, "home", ".agents", "skills"));
+});
+
+test("resolveScope keeps the default global generated skills directory when the manifest omits outputDir", async () => {
+  const root = await createTempDir("skm-scope-");
+  const cwd = path.join(root, "workspace");
+  const homeDir = path.join(root, "home");
+  await mkdir(cwd, { recursive: true });
+  await writeJsonFile(path.join(homeDir, ".config", "skm", "skills.json"), {
+    skills: {},
+  });
+
+  const scope = await resolveScope({
+    cwd,
+    homeDir,
+  });
+
+  assert.equal(scope.kind, "global");
+  assert.equal(scope.generatedSkillsDir, path.join(homeDir, ".agents", "skills"));
 });
 
 test("resolveScope ignores ambient XDG_CONFIG_HOME unless it is passed explicitly", async () => {

@@ -23,6 +23,8 @@ interface ParsedCli {
   version: boolean;
   alias?: string;
   ref?: string;
+  outputDir?: string;
+  outputDirSpecified: boolean;
 }
 
 export async function main(
@@ -67,6 +69,7 @@ function parseArgv(argv: string[]): ParsedCli {
     force: false,
     help: false,
     version: false,
+    outputDirSpecified: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -108,6 +111,12 @@ function parseArgv(argv: string[]): ParsedCli {
       index += 1;
       continue;
     }
+    if (token === "--output-dir" || token === "--outputDir") {
+      parsed.outputDirSpecified = true;
+      parsed.outputDir = argv[index + 1];
+      index += 1;
+      continue;
+    }
 
     if (!parsed.command) {
       parsed.command = token;
@@ -143,12 +152,19 @@ async function dispatch(
 
   switch (parsed.command) {
     case "init":
+      if (parsed.outputDirSpecified && !parsed.outputDir) {
+        throw new SkmError(
+          "Usage: skm init [--project|--global] [--force] [--output-dir <path>]",
+          2,
+        );
+      }
       return runInitCommand({
         cwd,
         homeDir,
         xdgConfigHome,
         scope: parsed.scope,
         force: parsed.force,
+        outputDir: parsed.outputDir,
       });
     case "add":
       if (!parsed.positional[0]) {
@@ -269,7 +285,7 @@ function buildHelpResult(command?: string): CliResult {
       return {
         kind: "help",
         title: "skm init",
-        usage: "skm init [--project|--global] [--force]",
+        usage: "skm init [--project|--global] [--force] [--output-dir <path>]",
         sections: [
           {
             title: "Options",
@@ -277,6 +293,7 @@ function buildHelpResult(command?: string): CliResult {
               "- --project  Initialize project scope",
               "- --global   Initialize global scope",
               "- --force    Rewrite existing manifest and lockfile",
+              "- --output-dir, --outputDir <path>  Configure where managed skills are materialized",
             ],
           },
         ],

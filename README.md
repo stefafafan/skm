@@ -77,7 +77,15 @@ npx @stefafafan/skm
 Initialize a project with `skills.json` and `skills.lock.json`
 
 ```bash
+# Defaults to .agents/skills
 skm init
+```
+
+If your agent expects a different skills directory, set it during initialization. For example, Claude projects can materialize directly into `.claude/skills`.
+
+```bash
+# Use .claude/skills instead
+skm init --output-dir .claude/skills
 ```
 
 Add your favorite skills.
@@ -146,15 +154,21 @@ Repository-wide imports discover every nested directory containing `SKILL.md`.
 
 The following files are used by `skm`:
 
-| File               | Purpose                                                                 |
-| ------------------ | ----------------------------------------------------------------------- |
-| `skills.json`      | User-facing intent — what skills you want                               |
-| `skills.lock.json` | Resolved commit hashes for reproducible installs                        |
-| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`) |
-| `.agents/skills/`  | The derived skills, read by your coding agent                           |
+| File               | Purpose                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `skills.json`      | User-facing intent — what skills you want                                       |
+| `skills.lock.json` | Resolved commit hashes for reproducible installs                                |
+| `.skm/`            | Internal state and cached contents (recommended to add to `.gitignore`)         |
+| `.agents/skills/`  | The default derived skills directory, configurable with `skm init --output-dir` |
 
 ## FAQ
 
 ### Q: My Coding Agent doesn't support `.agents/skills`
 
-Although some agents support `.agents/skills`, there are still many agents that use different paths. Until the standard is more widely adopted, symbolic links are the recommended workaround (for example, making `.claude/skills` a symlink for `.agents/skills`).
+Use `skm init --output-dir <path>` to match the directory your agent already reads. For example:
+
+```bash
+skm init --output-dir .claude/skills
+```
+
+That value is stored in `skills.json`, and future `skm add`, `skm install`, `skm rename`, and `skm remove` commands will keep materializing managed skills there.

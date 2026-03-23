@@ -8,6 +8,7 @@ export async function runInitCommand(options: {
   xdgConfigHome?: string;
   scope?: "global" | "project";
   force: boolean;
+  outputDir?: string;
 }): Promise<CliResult> {
   const scope =
     options.scope === "global"
@@ -25,7 +26,7 @@ export async function runInitCommand(options: {
           allowCreateProject: true,
         });
 
-  await initManifest(scope.manifestPath, options.force);
+  await initManifest(scope.manifestPath, options.force, options.outputDir);
   await initLockfile(scope.lockfilePath, options.force);
   return {
     kind: "summary",
