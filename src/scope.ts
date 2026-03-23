@@ -2,6 +2,7 @@ import path from "node:path";
 
 import { SkmError } from "./errors";
 import { pathExists } from "./fs";
+import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest";
 
 export type ScopeKind = "global" | "project";
 
@@ -36,18 +37,18 @@ export async function resolveScope(options: ResolveScopeOptions): Promise<ScopeP
     if (!projectRoot) {
       throw new SkmError("Project scope requested but no skills.json was found", 2);
     }
-    return projectScope(projectRoot);
+    return resolveManifestOutputDir(projectScope(projectRoot), projectRoot);
   }
 
   if (options.explicitScope === "global") {
-    return globalScope(homeDir, options.xdgConfigHome);
+    return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome), homeDir);
   }
 
   const discoveredProjectRoot = await findProjectRoot(options.cwd);
   if (discoveredProjectRoot) {
-    return projectScope(discoveredProjectRoot);
+    return resolveManifestOutputDir(projectScope(discoveredProjectRoot), discoveredProjectRoot);
   }
-  return globalScope(homeDir, options.xdgConfigHome);
+  return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome), homeDir);
 }
 
 export async function findProjectRoot(startDir: string): Promise<string | undefined> {
@@ -90,4 +91,23 @@ export function projectScope(projectRoot: string): ScopePaths {
     storeDir: path.join(projectRoot, ".skm", "store"),
     generatedSkillsDir: path.join(projectRoot, ".agents", "skills"),
   };
+}
+
+async function resolveManifestOutputDir(scope: ScopePaths, baseDir: string): Promise<ScopePaths> {
+  if (!(await pathExists(scope.manifestPath))) {
+    return scope;
+  }
+
+  const manifest = await readManifest(scope.manifestPath);
+  return {
+    ...scope,
+    generatedSkillsDir: resolveOutputDir(baseDir, manifest.outputDir),
+  };
+}
+
+function resolveOutputDir(baseDir: string, outputDir: string): string {
+  const normalizedOutputDir = outputDir || DEFAULT_OUTPUT_DIR;
+  return path.isAbsolute(normalizedOutputDir)
+    ? normalizedOutputDir
+    : path.resolve(baseDir, normalizedOutputDir);
 }

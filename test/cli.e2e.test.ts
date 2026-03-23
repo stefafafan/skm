@@ -120,14 +120,35 @@ test("skm init creates a project manifest", async () => {
   });
 
   assert.equal(result.code, 0, result.stderr);
-  const manifest = await readJsonFile<{ skills: Record<string, unknown> }>(
-    path.join(workspace, "skills.json"),
-  );
+  const manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(path.join(workspace, "skills.json"));
   const lockfile = await readJsonFile<{ skills: Record<string, unknown> }>(
     path.join(workspace, "skills.lock.json"),
   );
+  assert.equal(manifest.outputDir, ".agents/skills");
   assert.deepEqual(manifest.skills, {});
   assert.deepEqual(lockfile.skills, {});
+});
+
+test("skm init --outputDir persists the generated skills directory", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  await mkdir(workspace, { recursive: true });
+
+  const result = runCli(["init", "--project", "--outputDir", ".myagent/skills"], {
+    cwd: workspace,
+    env: { HOME: path.join(root, "home") },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  const manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(path.join(workspace, "skills.json"));
+  assert.equal(manifest.outputDir, ".myagent/skills");
+  assert.deepEqual(manifest.skills, {});
 });
 
 test("skm init --force rewrites an existing project manifest", async () => {
@@ -197,6 +218,43 @@ test("skm add stores resolved metadata and materializes the wrapped skill", asyn
 
   const wrappedSkill = await readFile(
     path.join(workspace, ".agents", "skills", "review-code-quality", "SKILL.md"),
+    "utf8",
+  );
+  assert.match(wrappedSkill, /name: review-code-quality/);
+  await fixture.cleanup();
+});
+
+test("skm add materializes into the manifest outputDir", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createSkillRepoFixture();
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(
+    runCli(["init", "--project", "--outputDir", ".myagent/skills"], {
+      cwd: workspace,
+      env: { HOME: home },
+    }).code,
+    0,
+  );
+  const result = runCli(
+    [
+      "add",
+      "https://example.com/example/skills/tree/main/skills/hello-skill",
+      "--project",
+      "--as",
+      "review-code-quality",
+    ],
+    {
+      cwd: workspace,
+      env: { HOME: home, SKM_GITHUB_BASE_URL: fixture.remoteRoot },
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr);
+  const wrappedSkill = await readFile(
+    path.join(workspace, ".myagent", "skills", "review-code-quality", "SKILL.md"),
     "utf8",
   );
   assert.match(wrappedSkill, /name: review-code-quality/);

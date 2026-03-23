@@ -5,6 +5,7 @@ import { SkmError } from "./errors";
 import { ensureDir, pathExists } from "./fs";
 
 export type MaterializationStrategy = "wrap" | "link" | "copy";
+export const DEFAULT_OUTPUT_DIR = ".agents/skills";
 
 export interface SkillManifestEntry {
   source: string;
@@ -13,6 +14,7 @@ export interface SkillManifestEntry {
 }
 
 export interface SkillsManifest {
+  outputDir: string;
   skills: Record<string, SkillManifestEntry>;
 }
 
@@ -30,12 +32,17 @@ export interface ResolvedSkillEntry extends SkillManifestEntry {
   integrity?: string;
 }
 
-export async function initManifest(manifestPath: string, force: boolean): Promise<void> {
+export async function initManifest(
+  manifestPath: string,
+  force: boolean,
+  outputDir = DEFAULT_OUTPUT_DIR,
+): Promise<void> {
   if (!force && (await pathExists(manifestPath))) {
     throw new SkmError(`Manifest already exists at ${manifestPath}`, 5);
   }
 
   await writeManifest(manifestPath, {
+    outputDir,
     skills: {},
   });
 }
@@ -72,14 +79,25 @@ export async function readManifest(manifestPath: string): Promise<SkillsManifest
     throw new SkmError(`Invalid manifest shape at ${manifestPath}`, 2);
   }
 
+  const parsedObject = parsed as {
+    outputDir?: unknown;
+    skills: Record<string, SkillManifestEntry>;
+  };
+  const outputDir =
+    typeof parsedObject.outputDir === "string" ? parsedObject.outputDir : DEFAULT_OUTPUT_DIR;
+
   return {
-    skills: (parsed as { skills: Record<string, SkillManifestEntry> }).skills,
+    outputDir,
+    skills: parsedObject.skills,
   };
 }
 
 export async function writeManifest(manifestPath: string, manifest: SkillsManifest): Promise<void> {
   await ensureDir(path.dirname(manifestPath));
-  await writeFile(manifestPath, `${JSON.stringify({ skills: manifest.skills }, null, 2)}\n`);
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify({ outputDir: manifest.outputDir, skills: manifest.skills }, null, 2)}\n`,
+  );
 }
 
 export async function readLockfile(lockfilePath: string): Promise<SkillsLockfile> {

@@ -4,6 +4,7 @@ import path from "node:path";
 import { mkdir } from "node:fs/promises";
 
 import {
+  DEFAULT_OUTPUT_DIR,
   initManifest,
   initLockfile,
   readLockfile,
@@ -11,7 +12,7 @@ import {
   writeLockfile,
   writeManifest,
 } from "../src/manifest";
-import { createTempDir, readJsonFile } from "./helpers/fixture";
+import { createTempDir, readJsonFile, writeJsonFile } from "./helpers/fixture";
 
 test("initManifest writes an empty manifest", async () => {
   const root = await createTempDir("skm-manifest-");
@@ -19,7 +20,25 @@ test("initManifest writes an empty manifest", async () => {
 
   await initManifest(manifestPath, false);
 
-  const manifest = await readJsonFile<{ skills: Record<string, unknown> }>(manifestPath);
+  const manifest = await readJsonFile<{
+    outputDir: string;
+    skills: Record<string, unknown>;
+  }>(manifestPath);
+  assert.equal(manifest.outputDir, ".agents/skills");
+  assert.deepEqual(manifest.skills, {});
+});
+
+test("readManifest defaults outputDir when it is not present", async () => {
+  const root = await createTempDir("skm-manifest-");
+  const manifestPath = path.join(root, "skills.json");
+  await mkdir(root, { recursive: true });
+
+  await writeJsonFile(manifestPath, {
+    skills: {},
+  });
+
+  const manifest = await readManifest(manifestPath);
+  assert.equal(manifest.outputDir, ".agents/skills");
   assert.deepEqual(manifest.skills, {});
 });
 
@@ -39,6 +58,7 @@ test("writeManifest persists intent fields without resolved metadata", async () 
   await mkdir(root, { recursive: true });
 
   await writeManifest(manifestPath, {
+    outputDir: DEFAULT_OUTPUT_DIR,
     skills: {
       "review-code-quality": {
         source: "https://example.com/example/skills/tree/main/skills/hello-skill",
