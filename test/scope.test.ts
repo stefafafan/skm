@@ -3,8 +3,8 @@ import test from "node:test";
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
 
-import { SkmError } from "#src/errors.js";
-import { resolveScope, resolveScopeResult } from "#src/scope.js";
+import { SkmError } from "../src/errors.js";
+import { resolveScope, resolveScopeResult } from "../src/scope.js";
 import { createTempDir, writeJsonFile } from "./helpers/fixture.js";
 
 test("resolveScope defaults to project scope when an ancestor skills.json exists", async () => {

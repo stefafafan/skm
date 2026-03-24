@@ -10,7 +10,7 @@ import {
   unwrapOrThrow,
   type SkmError,
   type SkmResult,
-} from "#src/errors.js";
+} from "./errors.js";
 
 const execFileAsync = promisify(execFile);
 

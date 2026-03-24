@@ -1,8 +1,8 @@
 import path from "node:path";
 
-import { fromSkmPromise, type SkmResultAsync, SkmError } from "#src/errors.js";
-import { pathExists } from "#src/fs.js";
-import { DEFAULT_OUTPUT_DIR, readManifest } from "#src/manifest.js";
+import { fromSkmPromise, type SkmResultAsync, SkmError } from "./errors.js";
+import { pathExists } from "./fs.js";
+import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest.js";
 
 export type ScopeKind = "global" | "project";
 

@@ -26,12 +26,6 @@
   "bin": {
     "skm": "dist/src/cli.js"
   },
-  "imports": {
-    "#src/*": {
-      "types": "./src/*",
-      "default": "./dist/src/*"
-    }
-  },
   "files": [
     "dist/src/**/*",
     "LICENSE",

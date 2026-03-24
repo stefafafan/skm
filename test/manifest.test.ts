@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { SkmError } from "#src/errors.js";
+import { SkmError } from "../src/errors.js";
 import {
   DEFAULT_OUTPUT_DIR,
   initLockfile,
@@ -13,7 +13,7 @@ import {
   readManifestResult,
   writeLockfile,
   writeManifest,
-} from "#src/manifest.js";
+} from "../src/manifest.js";
 import { createTempDir, readJsonFile, writeJsonFile } from "./helpers/fixture.js";
 
 test("initManifest writes an empty manifest", async () => {

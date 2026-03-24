@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import type { CliResult } from "#src/output.js";
-import { renderCliResultWithInkResult } from "#src/ui/render.js";
+import type { CliResult } from "../src/output.js";
+import { renderCliResultWithInkResult } from "../src/ui/render.js";
 
 const compiledTestFilePath = fileURLToPath(import.meta.url);
 

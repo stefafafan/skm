@@ -3,7 +3,7 @@ import test from "node:test";
 import path from "node:path";
 import { access, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 
-import { materializeSkillResult } from "#src/materialize.js";
+import { materializeSkillResult } from "../src/materialize.js";
 import { createTempDir } from "./helpers/fixture.js";
 
 test("materializeSkill wraps SKILL.md with the canonical name and preserves support files", async () => {

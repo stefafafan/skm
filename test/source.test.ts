@@ -11,7 +11,7 @@ import {
   fetchSkillToTempDirResult,
   parseSource,
   parseSourceResult,
-} from "#src/source.js";
+} from "../src/source.js";
 import { createSkillRepoFixture, createTempDir } from "./helpers/fixture.js";
 
 test("parseSourceResult returns ok for a GitHub tree URL", () => {

@@ -3,7 +3,7 @@ import test from "node:test";
 import path from "node:path";
 import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 
-import { hashDirectoryResult } from "#src/hash.js";
+import { hashDirectoryResult } from "../src/hash.js";
 import { createTempDir } from "./helpers/fixture.js";
 
 test("hashDirectoryResult returns an err for a symlinked SKILL.md", async () => {

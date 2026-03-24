@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   resolveCanonicalSkillPathResult,
   validateCanonicalNameResult,
-} from "#src/canonical-name.js";
+} from "../src/canonical-name.js";
 
 test("validateCanonicalNameResult returns ok for a safe canonical name", () => {
   const result = validateCanonicalNameResult("review-code-quality");

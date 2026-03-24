@@ -1,12 +1,12 @@
-import { SkmError } from "#src/errors.js";
-import { readManifest, initLockfile, initManifest } from "#src/manifest.js";
-import { type CliResult } from "#src/output.js";
+import { SkmError } from "../errors.js";
+import { readManifest, initLockfile, initManifest } from "../manifest.js";
+import { type CliResult } from "../output.js";
 import {
   findProjectRoot,
   globalScope,
   projectScope,
   resolveProjectOutputDir,
-} from "#src/scope.js";
+} from "../scope.js";
 
 export async function runInitCommand(options: {
   cwd: string;

@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { errSkm, okSkm, unwrapOrThrow, type SkmResult } from "#src/errors.js";
+import { errSkm, okSkm, unwrapOrThrow, type SkmResult } from "./errors.js";
 
 export function validateCanonicalNameResult(canonicalName: string): SkmResult<string> {
   if (!canonicalName) {

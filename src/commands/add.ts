@@ -2,12 +2,12 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { validateCanonicalName } from "#src/canonical-name.js";
-import { SkmError } from "#src/errors.js";
-import { hashDirectory } from "#src/hash.js";
-import { readLockfile, readManifest, writeLockfile, writeManifest } from "#src/manifest.js";
-import { type CliResult, type CliSkillSummary } from "#src/output.js";
-import { resolveScope } from "#src/scope.js";
+import { validateCanonicalName } from "../canonical-name.js";
+import { SkmError } from "../errors.js";
+import { hashDirectory } from "../hash.js";
+import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest.js";
+import { type CliResult, type CliSkillSummary } from "../output.js";
+import { resolveScope } from "../scope.js";
 import {
   canonicalTreeUrl,
   checkoutSourceRepo,
@@ -15,10 +15,10 @@ import {
   discoverSkillsInRepo,
   fetchSkillToTempDir,
   parseSource,
-} from "#src/source.js";
-import { storeSkill } from "#src/store.js";
-import { materializeSkill } from "#src/materialize.js";
-import { removeIfExists } from "#src/fs.js";
+} from "../source.js";
+import { storeSkill } from "../store.js";
+import { materializeSkill } from "../materialize.js";
+import { removeIfExists } from "../fs.js";
 
 export async function runAddCommand(options: {
   cwd: string;

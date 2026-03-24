@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
 
-import { cloneAndCheckoutResult, readHeadCommitResult, runGitResult } from "#src/git.js";
+import { cloneAndCheckoutResult, readHeadCommitResult, runGitResult } from "../src/git.js";
 import { createSkillRepoFixture } from "./helpers/fixture.js";
 
 test("runGitResult returns ok for a successful git invocation", async () => {

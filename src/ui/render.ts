@@ -1,13 +1,13 @@
 import React from "react";
 
-import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "#src/errors.js";
+import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "../errors.js";
 import type {
   CliDetail,
   CliListResult,
   CliResult,
   CliSkillSummary,
   CliSummaryResult,
-} from "#src/output.js";
+} from "../output.js";
 
 type InkComponentProps = {
   children?: React.ReactNode;

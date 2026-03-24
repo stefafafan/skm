@@ -1,6 +1,6 @@
-import { mergeSkillState, readLockfile, readManifest, ResolvedSkillEntry } from "#src/manifest.js";
-import { type CliListResult, type CliListRow } from "#src/output.js";
-import { findProjectRoot, globalScope, projectScope, resolveScope } from "#src/scope.js";
+import { mergeSkillState, readLockfile, readManifest, ResolvedSkillEntry } from "../manifest.js";
+import { type CliListResult, type CliListRow } from "../output.js";
+import { findProjectRoot, globalScope, projectScope, resolveScope } from "../scope.js";
 
 type ListedSkill = {
   name: string;

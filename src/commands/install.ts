@@ -2,16 +2,16 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { resolveCanonicalSkillPath, validateCanonicalName } from "#src/canonical-name.js";
-import { SkmError } from "#src/errors.js";
-import { pathExists, removeIfExists } from "#src/fs.js";
-import { hashDirectory } from "#src/hash.js";
-import { materializeSkill } from "#src/materialize.js";
-import { readLockfile, readManifest, writeLockfile } from "#src/manifest.js";
-import { type CliResult, type CliSkillSummary } from "#src/output.js";
-import { resolveScope } from "#src/scope.js";
-import { defaultRequestedRef, fetchSkillToTempDir, parseSource } from "#src/source.js";
-import { storePath, storeSkill } from "#src/store.js";
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name.js";
+import { SkmError } from "../errors.js";
+import { pathExists, removeIfExists } from "../fs.js";
+import { hashDirectory } from "../hash.js";
+import { materializeSkill } from "../materialize.js";
+import { readLockfile, readManifest, writeLockfile } from "../manifest.js";
+import { type CliResult, type CliSkillSummary } from "../output.js";
+import { resolveScope } from "../scope.js";
+import { defaultRequestedRef, fetchSkillToTempDir, parseSource } from "../source.js";
+import { storePath, storeSkill } from "../store.js";
 
 export async function runInstallCommand(options: {
   cwd: string;
