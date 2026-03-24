@@ -98,5 +98,9 @@ async function resolveCheckoutCommitResult(
     lastError = candidateResult.error;
   }
 
-  return errSkm(lastError ?? `Unable to resolve git ref: ${ref}`, 3);
+  if (lastError) {
+    return errSkm(lastError);
+  }
+
+  return errSkm(`Unable to resolve git ref: ${ref}`, 3);
 }

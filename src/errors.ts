@@ -48,6 +48,8 @@ export function okSkm<T>(value: T): SkmResult<T> {
   return ok(value);
 }
 
+export function errSkm(error: string, exitCode?: number): SkmResult<never>;
+export function errSkm(error: SkmError): SkmResult<never>;
 export function errSkm(error: string | SkmError, exitCode?: number): SkmResult<never> {
   return err(typeof error === "string" ? new SkmError(error, exitCode) : error);
 }

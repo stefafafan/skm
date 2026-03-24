@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   SkmError,
+  errSkm,
   fromSkmPromise,
   fromSkmThrowable,
   getErrorMessage,
@@ -36,6 +37,15 @@ test("toSkmError preserves an existing SkmError", () => {
   const original = new SkmError("boom", 7);
 
   assert.equal(toSkmError(original), original);
+});
+
+test("errSkm preserves an SkmError exit code when passed directly", () => {
+  const original = new SkmError("boom", 7);
+  const result = errSkm(original);
+
+  assert.equal(result.isErr(), true);
+  assert.equal(result._unsafeUnwrapErr(), original);
+  assert.equal(result._unsafeUnwrapErr().exitCode, 7);
 });
 
 test("toSkmError wraps unknown failures with a fallback message and exit code", () => {
