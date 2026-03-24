@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import test from "node:test";
 
 import type { CliResult } from "../src/output";
 import { renderCliResultWithInk } from "../src/ui/render";
 
+const compiledTestFilePath = __filename;
+
 test("renderCliResultWithInk renders the built summary view through the compiled renderer path", async () => {
+  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+
   const result: CliResult = {
     kind: "summary",
     command: "add",
@@ -37,6 +42,8 @@ test("renderCliResultWithInk renders the built summary view through the compiled
 });
 
 test("renderCliResultWithInk renders list output through the compiled renderer path", async () => {
+  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+
   const result: CliResult = {
     kind: "list",
     all: true,
