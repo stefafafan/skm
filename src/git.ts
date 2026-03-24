@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { SkmError } from "./errors";
+import { getErrorMessage, getErrorStderr, getSkmError, SkmError } from "./errors";
 
 const execFileAsync = promisify(execFile);
 
@@ -13,8 +13,7 @@ export async function runGit(args: string[], cwd?: string): Promise<string> {
     });
     return stdout;
   } catch (error) {
-    const execError = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
-    const detail = execError.stderr?.trim() || execError.message;
+    const detail = getErrorStderr(error)?.trim() || getErrorMessage(error);
     throw new SkmError(`git ${args.join(" ")} failed: ${detail}`, 3);
   }
 }
@@ -50,7 +49,11 @@ async function resolveCheckoutCommit(repoDir: string, ref: string): Promise<stri
         await runGit(["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`], repoDir)
       ).trim();
     } catch (error) {
-      lastError = error as SkmError;
+      const skmError = getSkmError(error);
+      if (!skmError) {
+        throw error;
+      }
+      lastError = skmError;
     }
   }
 
