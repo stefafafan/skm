@@ -32,6 +32,71 @@ export type ResolvedSkillEntry = SkillManifestEntry & {
   integrity?: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isMaterializationStrategy(value: unknown): value is MaterializationStrategy {
+  return value === "wrap" || value === "link" || value === "copy";
+}
+
+function parseManifestEntry(
+  manifestPath: string,
+  skillName: string,
+  value: unknown,
+): SkillManifestEntry {
+  if (!isRecord(value)) {
+    throw new SkmError(`Invalid manifest shape at ${manifestPath}: skill "${skillName}" must be an object`, 2);
+  }
+  if (typeof value.source !== "string") {
+    throw new SkmError(
+      `Invalid manifest shape at ${manifestPath}: skill "${skillName}" source must be a string`,
+      2,
+    );
+  }
+  if (value.requested !== undefined && typeof value.requested !== "string") {
+    throw new SkmError(
+      `Invalid manifest shape at ${manifestPath}: skill "${skillName}" requested must be a string`,
+      2,
+    );
+  }
+  if (value.strategy !== undefined && !isMaterializationStrategy(value.strategy)) {
+    throw new SkmError(
+      `Invalid manifest shape at ${manifestPath}: skill "${skillName}" strategy must be one of wrap, link, or copy`,
+      2,
+    );
+  }
+
+  return {
+    source: value.source,
+    requested: value.requested,
+    strategy: value.strategy,
+  };
+}
+
+function parseLockEntry(lockfilePath: string, skillName: string, value: unknown): SkillLockEntry {
+  if (!isRecord(value)) {
+    throw new SkmError(`Invalid lockfile shape at ${lockfilePath}: skill "${skillName}" must be an object`, 2);
+  }
+  if (typeof value.resolved !== "string") {
+    throw new SkmError(
+      `Invalid lockfile shape at ${lockfilePath}: skill "${skillName}" resolved must be a string`,
+      2,
+    );
+  }
+  if (typeof value.integrity !== "string") {
+    throw new SkmError(
+      `Invalid lockfile shape at ${lockfilePath}: skill "${skillName}" integrity must be a string`,
+      2,
+    );
+  }
+
+  return {
+    resolved: value.resolved,
+    integrity: value.integrity,
+  };
+}
+
 export async function initManifest(
   manifestPath: string,
   force: boolean,
@@ -79,25 +144,22 @@ export async function readManifest(manifestPath: string): Promise<SkillsManifest
     throw new SkmError(`Invalid manifest JSON at ${manifestPath}: ${(error as Error).message}`, 2);
   }
 
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !("skills" in parsed) ||
-    typeof (parsed as { skills?: unknown }).skills !== "object"
-  ) {
+  if (!isRecord(parsed) || !isRecord(parsed.skills)) {
     throw new SkmError(`Invalid manifest shape at ${manifestPath}`, 2);
   }
 
-  const parsedObject = parsed as {
-    outputDir?: unknown;
-    skills: Record<string, SkillManifestEntry>;
-  };
-  const outputDir =
-    typeof parsedObject.outputDir === "string" ? parsedObject.outputDir : DEFAULT_OUTPUT_DIR;
+  if (parsed.outputDir !== undefined && typeof parsed.outputDir !== "string") {
+    throw new SkmError(`Invalid manifest shape at ${manifestPath}: outputDir must be a string`, 2);
+  }
+
+  const skills: Record<string, SkillManifestEntry> = {};
+  for (const [name, entry] of Object.entries(parsed.skills)) {
+    skills[name] = parseManifestEntry(manifestPath, name, entry);
+  }
 
   return {
-    outputDir,
-    skills: parsedObject.skills,
+    outputDir: parsed.outputDir ?? DEFAULT_OUTPUT_DIR,
+    skills,
   };
 }
 
@@ -122,16 +184,16 @@ export async function readLockfile(lockfilePath: string): Promise<SkillsLockfile
     throw new SkmError(`Invalid lockfile JSON at ${lockfilePath}: ${(error as Error).message}`, 2);
   }
 
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !("skills" in parsed) ||
-    typeof (parsed as { skills?: unknown }).skills !== "object"
-  ) {
+  if (!isRecord(parsed) || !isRecord(parsed.skills)) {
     throw new SkmError(`Invalid lockfile shape at ${lockfilePath}`, 2);
   }
 
-  return parsed as SkillsLockfile;
+  const skills: Record<string, SkillLockEntry> = {};
+  for (const [name, entry] of Object.entries(parsed.skills)) {
+    skills[name] = parseLockEntry(lockfilePath, name, entry);
+  }
+
+  return { skills };
 }
 
 export async function writeLockfile(lockfilePath: string, lockfile: SkillsLockfile): Promise<void> {
