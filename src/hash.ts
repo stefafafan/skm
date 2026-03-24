@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { safeTry } from "neverthrow";
 
-import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "./errors.js";
+import { fromSkmPromise, okSkm, unwrapOrThrow, type SkmError, type SkmResult } from "./errors.js";
 import { assertRegularFileResult, listFilesRecursiveResult } from "./fs.js";
 
 export async function hashDirectory(dirPath: string): Promise<string> {
@@ -10,28 +11,21 @@ export async function hashDirectory(dirPath: string): Promise<string> {
 }
 
 export async function hashDirectoryResult(dirPath: string): Promise<SkmResult<string>> {
-  const skillMdResult = await assertRegularFileResult(
-    path.join(dirPath, "SKILL.md"),
-    `Skill directory ${dirPath} SKILL.md`,
-  );
-  if (skillMdResult.isErr()) {
-    return errSkm(skillMdResult.error);
-  }
-  const hash = createHash("sha256");
-  const filesResult = await listFilesRecursiveResult(dirPath);
-  if (filesResult.isErr()) {
-    return errSkm(filesResult.error);
-  }
+  return safeTry<string, SkmError>(async function* () {
+    yield* await assertRegularFileResult(
+      path.join(dirPath, "SKILL.md"),
+      `Skill directory ${dirPath} SKILL.md`,
+    );
 
-  for (const relativePath of filesResult.value) {
-    hash.update(`path:${relativePath}\n`);
-    try {
-      hash.update(await readFile(path.join(dirPath, relativePath)));
-    } catch (error) {
-      return errSkm(toSkmError(error));
+    const hash = createHash("sha256");
+    const files = yield* await listFilesRecursiveResult(dirPath);
+
+    for (const relativePath of files) {
+      hash.update(`path:${relativePath}\n`);
+      hash.update(yield* fromSkmPromise(readFile(path.join(dirPath, relativePath))));
+      hash.update("\n");
     }
-    hash.update("\n");
-  }
 
-  return okSkm(`sha256-${hash.digest("base64")}`);
+    return okSkm(`sha256-${hash.digest("base64")}`);
+  });
 }

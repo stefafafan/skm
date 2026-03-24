@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { safeTry } from "neverthrow";
 
 import {
   errSkm,
@@ -43,22 +44,12 @@ export async function cloneAndCheckoutResult(
   ref: string,
   targetDir: string,
 ): Promise<SkmResult<void>> {
-  const cloneResult = await runGitResult(["clone", "--quiet", repoUrl, targetDir]);
-  if (cloneResult.isErr()) {
-    return errSkm(cloneResult.error);
-  }
-  const commitResult = await resolveCheckoutCommitResult(targetDir, ref);
-  if (commitResult.isErr()) {
-    return errSkm(commitResult.error);
-  }
-  const checkoutResult = await runGitResult(
-    ["checkout", "--quiet", "--detach", commitResult.value],
-    targetDir,
-  );
-  if (checkoutResult.isErr()) {
-    return errSkm(checkoutResult.error);
-  }
-  return okSkm(undefined);
+  return safeTry<void, SkmError>(async function* () {
+    yield* await runGitResult(["clone", "--quiet", repoUrl, targetDir]);
+    const commit = yield* await resolveCheckoutCommitResult(targetDir, ref);
+    yield* await runGitResult(["checkout", "--quiet", "--detach", commit], targetDir);
+    return okSkm(undefined);
+  });
 }
 
 export async function readHeadCommit(repoDir: string): Promise<string> {
@@ -66,11 +57,10 @@ export async function readHeadCommit(repoDir: string): Promise<string> {
 }
 
 export async function readHeadCommitResult(repoDir: string): Promise<SkmResult<string>> {
-  const headResult = await runGitResult(["rev-parse", "HEAD"], repoDir);
-  if (headResult.isErr()) {
-    return errSkm(headResult.error);
-  }
-  return okSkm(headResult.value.trim());
+  return safeTry<string, SkmError>(async function* () {
+    const head = yield* await runGitResult(["rev-parse", "HEAD"], repoDir);
+    return okSkm(head.trim());
+  });
 }
 
 async function resolveCheckoutCommitResult(
