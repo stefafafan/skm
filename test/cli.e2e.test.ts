@@ -256,7 +256,11 @@ test("skm init --force rewrites an existing project manifest and preserves outpu
     outputDir: string;
     skills: Record<string, unknown>;
   }>(path.join(workspace, "skills.json"));
-  manifest.skills = { stale: {} };
+  manifest.skills = {
+    stale: {
+      source: "https://example.com/example/skills/tree/main/skills/stale",
+    },
+  };
   await writeJsonFile(path.join(workspace, "skills.json"), manifest);
 
   const result = runCli(["init", "--project", "--force"], {

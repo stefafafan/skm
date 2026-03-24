@@ -49,7 +49,11 @@ test("initManifest --force preserves an existing outputDir when none is provided
 
   await writeJsonFile(manifestPath, {
     outputDir: ".myagent/skills",
-    skills: { stale: {} },
+    skills: {
+      stale: {
+        source: "https://example.com/example/skills/tree/main/skills/stale",
+      },
+    },
   });
 
   await initManifest(manifestPath, true);
@@ -91,6 +95,47 @@ test("writeManifest persists intent fields without resolved metadata", async () 
     "https://example.com/example/skills/tree/main/skills/hello-skill",
   );
   assert.equal(manifest.skills["review-code-quality"]?.requested, "main");
+});
+
+test("readManifest rejects malformed nested skill entries", async () => {
+  const root = await createTempDir("skm-manifest-");
+  const manifestPath = path.join(root, "skills.json");
+  await mkdir(root, { recursive: true });
+
+  await writeJsonFile(manifestPath, {
+    outputDir: ".agents/skills",
+    skills: {
+      "review-code-quality": {
+        source: 123,
+        requested: "main",
+      },
+    },
+  });
+
+  await assert.rejects(
+    readManifest(manifestPath),
+    /Invalid manifest shape/,
+  );
+});
+
+test("readLockfile rejects malformed nested skill entries", async () => {
+  const root = await createTempDir("skm-manifest-");
+  const lockfilePath = path.join(root, "skills.lock.json");
+  await mkdir(root, { recursive: true });
+
+  await writeJsonFile(lockfilePath, {
+    skills: {
+      "review-code-quality": {
+        resolved: 123,
+        integrity: "sha256-deadbeef",
+      },
+    },
+  });
+
+  await assert.rejects(
+    readLockfile(lockfilePath),
+    /Invalid lockfile shape/,
+  );
 });
 
 test("writeLockfile persists resolved metadata separately from the manifest", async () => {
