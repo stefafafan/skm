@@ -1,7 +1,7 @@
 import { cp, lstat, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { SkmError } from "./errors";
+import { SkmError } from "./errors.js";
 
 export async function pathExists(targetPath: string): Promise<boolean> {
   try {

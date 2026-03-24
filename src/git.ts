@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { getErrorMessage, getErrorStderr, getSkmError, SkmError } from "./errors";
+import { getErrorMessage, getErrorStderr, getSkmError, SkmError } from "./errors.js";
 
 const execFileAsync = promisify(execFile);
 

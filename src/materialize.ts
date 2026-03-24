@@ -1,10 +1,10 @@
 import { readFile, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { resolveCanonicalSkillPath, validateCanonicalName } from "./canonical-name";
-import { SkmError } from "./errors";
-import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs";
-import type { MaterializationStrategy } from "./manifest";
+import { resolveCanonicalSkillPath, validateCanonicalName } from "./canonical-name.js";
+import { SkmError } from "./errors.js";
+import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs.js";
+import type { MaterializationStrategy } from "./manifest.js";
 
 export type MaterializeSkillOptions = {
   canonicalName: string;

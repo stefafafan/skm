@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import test from "node:test";
 
-import type { CliResult } from "../src/output";
-import { renderCliResultWithInk } from "../src/ui/render";
+import type { CliResult } from "../src/output.js";
+import { renderCliResultWithInk } from "../src/ui/render.js";
 
-const compiledTestFilePath = __filename;
+const compiledTestFilePath = fileURLToPath(import.meta.url);
 
 test("renderCliResultWithInk renders the built summary view through the compiled renderer path", async () => {
   assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));

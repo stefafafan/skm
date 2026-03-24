@@ -1,7 +1,7 @@
 import path from "node:path";
 
-import { SkmError } from "./errors";
-import { copyDirectory, ensureDir, pathExists } from "./fs";
+import { SkmError } from "./errors.js";
+import { copyDirectory, ensureDir, pathExists } from "./fs.js";
 
 export async function storeSkill(
   storeDir: string,

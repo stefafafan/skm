@@ -3,10 +3,10 @@ import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
-import { validateCanonicalName } from "./canonical-name";
-import { SkmError } from "./errors";
-import { assertRegularFile, copyDirectory, removeIfExists } from "./fs";
-import { cloneAndCheckout, readHeadCommit, runGit } from "./git";
+import { validateCanonicalName } from "./canonical-name.js";
+import { SkmError } from "./errors.js";
+import { assertRegularFile, copyDirectory, removeIfExists } from "./fs.js";
+import { cloneAndCheckout, readHeadCommit, runGit } from "./git.js";
 
 export type GithubTreeSource = {
   kind: "github-tree";

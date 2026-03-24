@@ -3,8 +3,8 @@ import test from "node:test";
 import path from "node:path";
 import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 
-import { hashDirectory } from "../src/hash";
-import { createTempDir } from "./helpers/fixture";
+import { hashDirectory } from "../src/hash.js";
+import { createTempDir } from "./helpers/fixture.js";
 
 test("hashDirectory rejects a symlinked SKILL.md", async () => {
   const root = await createTempDir("skm-hash-symlink-");

@@ -11,7 +11,7 @@ import {
   readJsonFile,
   runCli,
   writeJsonFile,
-} from "./helpers/fixture";
+} from "./helpers/fixture.js";
 
 test("skm --help prints top-level usage", async () => {
   const root = await createTempDir("skm-cli-");

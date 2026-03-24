@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { assertRegularFile, listFilesRecursive } from "./fs";
+import { assertRegularFile, listFilesRecursive } from "./fs.js";
 
 export async function hashDirectory(dirPath: string): Promise<string> {
   await assertRegularFile(path.join(dirPath, "SKILL.md"), `Skill directory ${dirPath} SKILL.md`);

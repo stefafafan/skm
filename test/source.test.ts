@@ -9,8 +9,8 @@ import {
   discoverSkillsInRepo,
   fetchSkillToTempDir,
   parseSource,
-} from "../src/source";
-import { createSkillRepoFixture, createTempDir } from "./helpers/fixture";
+} from "../src/source.js";
+import { createSkillRepoFixture, createTempDir } from "./helpers/fixture.js";
 
 test("parseSource extracts owner, repo, ref, subpath, and default canonical name from a GitHub tree URL", () => {
   const parsed = parseSource("https://example.com/example/skills/tree/main/skills/hello-skill");
