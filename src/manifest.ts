@@ -7,30 +7,30 @@ import { ensureDir, pathExists } from "./fs";
 export type MaterializationStrategy = "wrap" | "link" | "copy";
 export const DEFAULT_OUTPUT_DIR = ".agents/skills";
 
-export interface SkillManifestEntry {
+export type SkillManifestEntry = {
   source: string;
   requested?: string;
   strategy?: MaterializationStrategy;
-}
+};
 
-export interface SkillsManifest {
+export type SkillsManifest = {
   outputDir: string;
   skills: Record<string, SkillManifestEntry>;
-}
+};
 
-export interface SkillLockEntry {
+export type SkillLockEntry = {
   resolved: string;
   integrity: string;
-}
+};
 
-export interface SkillsLockfile {
+export type SkillsLockfile = {
   skills: Record<string, SkillLockEntry>;
-}
+};
 
-export interface ResolvedSkillEntry extends SkillManifestEntry {
+export type ResolvedSkillEntry = SkillManifestEntry & {
   resolved?: string;
   integrity?: string;
-}
+};
 
 export async function initManifest(
   manifestPath: string,

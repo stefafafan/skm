@@ -1,11 +1,11 @@
 import { type ScopeKind } from "./scope";
 
-export interface CliDetail {
+export type CliDetail = {
   label: string;
   value: string;
-}
+};
 
-export interface CliSkillSummary {
+export type CliSkillSummary = {
   name: string;
   status?: "added" | "installed" | "updated" | "removed" | "renamed" | "skipped";
   previousName?: string;
@@ -13,55 +13,55 @@ export interface CliSkillSummary {
   requested?: string;
   resolved?: string;
   integrity?: string;
-}
+};
 
-export interface CliSummaryResult {
+export type CliSummaryResult = {
   kind: "summary";
   command: "init" | "add" | "install" | "update" | "remove" | "rename";
   scope: ScopeKind;
   summary: string;
   details?: CliDetail[];
   skills?: CliSkillSummary[];
-}
+};
 
-export interface CliListRow {
+export type CliListRow = {
   name: string;
   scope: ScopeKind;
   source: string;
   requested?: string;
   resolved?: string;
   effective: "active" | "overridden";
-}
+};
 
-export interface CliListResult {
+export type CliListResult = {
   kind: "list";
   all: boolean;
   rows: CliListRow[];
-}
+};
 
-export interface CliInspectResult {
+export type CliInspectResult = {
   kind: "inspect";
   name: string;
   scope: ScopeKind;
   details: CliDetail[];
-}
+};
 
-export interface CliHelpSection {
+export type CliHelpSection = {
   title: string;
   lines: string[];
-}
+};
 
-export interface CliHelpResult {
+export type CliHelpResult = {
   kind: "help";
   title: string;
   usage: string;
   sections: CliHelpSection[];
-}
+};
 
-export interface CliVersionResult {
+export type CliVersionResult = {
   kind: "version";
   version: string;
-}
+};
 
 export type CliResult =
   | CliSummaryResult
