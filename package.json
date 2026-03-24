@@ -44,7 +44,7 @@
     "test": "pnpm run build && node --test \"dist/test/**/*.test.js\""
   },
   "dependencies": {
-    "cac": "^6.7.14",
+    "cac": "^7.0.0",
     "ink": "^6.8.0",
     "neverthrow": "^8.2.0",
     "react": "^19.2.4"
