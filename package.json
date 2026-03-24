@@ -16,12 +16,21 @@
   },
   "license": "MIT",
   "author": "stefafafan",
+  "engines": {
+    "node": ">=24"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stefafafan/skm.git"
   },
   "bin": {
     "skm": "dist/src/cli.js"
+  },
+  "imports": {
+    "#src/*": {
+      "types": "./src/*",
+      "default": "./dist/src/*"
+    }
   },
   "files": [
     "dist/src/**/*",

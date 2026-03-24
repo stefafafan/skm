@@ -1,8 +1,8 @@
-import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name.js";
-import { SkmError } from "../errors.js";
-import { mergeSkillState, readLockfile, readManifest } from "../manifest.js";
-import { type CliInspectResult } from "../output.js";
-import { findProjectRoot, projectScope, resolveScope } from "../scope.js";
+import { resolveCanonicalSkillPath, validateCanonicalName } from "#src/canonical-name.js";
+import { SkmError } from "#src/errors.js";
+import { mergeSkillState, readLockfile, readManifest } from "#src/manifest.js";
+import { type CliInspectResult } from "#src/output.js";
+import { findProjectRoot, projectScope, resolveScope } from "#src/scope.js";
 
 export async function runInspectCommand(options: {
   cwd: string;

@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { safeTry } from "neverthrow";
 
-import { fromSkmPromise, okSkm, unwrapOrThrow, type SkmError, type SkmResult } from "./errors.js";
-import { assertRegularFileResult, listFilesRecursiveResult } from "./fs.js";
+import { fromSkmPromise, okSkm, unwrapOrThrow, type SkmError, type SkmResult } from "#src/errors.js";
+import { assertRegularFileResult, listFilesRecursiveResult } from "#src/fs.js";
 
 export async function hashDirectory(dirPath: string): Promise<string> {
   return unwrapOrThrow(await hashDirectoryResult(dirPath));

@@ -2,7 +2,7 @@ import { readFile, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { safeTry } from "neverthrow";
 
-import { resolveCanonicalSkillPathResult, validateCanonicalNameResult } from "./canonical-name.js";
+import { resolveCanonicalSkillPathResult, validateCanonicalNameResult } from "#src/canonical-name.js";
 import {
   errSkm,
   fromSkmPromise,
@@ -11,15 +11,15 @@ import {
   unwrapOrThrow,
   type SkmError,
   type SkmResult,
-} from "./errors.js";
+} from "#src/errors.js";
 import {
   assertRegularFileResult,
   copyDirectoryResult,
   ensureDirResult,
   pathExistsResult,
   removeIfExistsResult,
-} from "./fs.js";
-import type { MaterializationStrategy } from "./manifest.js";
+} from "#src/fs.js";
+import type { MaterializationStrategy } from "#src/manifest.js";
 
 export type MaterializeSkillOptions = {
   canonicalName: string;

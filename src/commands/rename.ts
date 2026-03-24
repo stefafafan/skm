@@ -1,11 +1,11 @@
-import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name.js";
-import { SkmError } from "../errors.js";
-import { materializeSkill } from "../materialize.js";
-import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest.js";
-import { type CliResult } from "../output.js";
-import { resolveScope } from "../scope.js";
-import { storePath } from "../store.js";
-import { removeIfExists } from "../fs.js";
+import { resolveCanonicalSkillPath, validateCanonicalName } from "#src/canonical-name.js";
+import { SkmError } from "#src/errors.js";
+import { materializeSkill } from "#src/materialize.js";
+import { readLockfile, readManifest, writeLockfile, writeManifest } from "#src/manifest.js";
+import { type CliResult } from "#src/output.js";
+import { resolveScope } from "#src/scope.js";
+import { storePath } from "#src/store.js";
+import { removeIfExists } from "#src/fs.js";
 
 export async function runRenameCommand(options: {
   cwd: string;

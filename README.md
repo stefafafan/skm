@@ -58,6 +58,8 @@ project/
 
 ## Installation
 
+Requires Node 24 or newer.
+
 ### Globally
 
 ```bash

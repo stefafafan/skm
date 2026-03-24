@@ -1,7 +1,7 @@
 import { cp, lstat, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "./errors.js";
+import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "#src/errors.js";
 
 export async function pathExists(targetPath: string): Promise<boolean> {
   return unwrapOrThrow(await pathExistsResult(targetPath));

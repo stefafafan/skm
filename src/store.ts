@@ -1,8 +1,8 @@
 import path from "node:path";
 import { safeTry } from "neverthrow";
 
-import { errSkm, okSkm, unwrapOrThrow, type SkmError, type SkmResult } from "./errors.js";
-import { copyDirectoryResult, ensureDirResult, pathExistsResult } from "./fs.js";
+import { errSkm, okSkm, unwrapOrThrow, type SkmError, type SkmResult } from "#src/errors.js";
+import { copyDirectoryResult, ensureDirResult, pathExistsResult } from "#src/fs.js";
 
 export async function storeSkill(
   storeDir: string,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { storePathResult } from "../src/store.js";
+import { storePathResult } from "#src/store.js";
 
 test("storePathResult returns ok for a valid integrity value", () => {
   const result = storePathResult("/tmp/skm-store", "sha256-deadbeef");

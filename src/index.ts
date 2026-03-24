@@ -1,18 +1,18 @@
 import { readFile } from "node:fs/promises";
 
-import { validateCanonicalName } from "./canonical-name.js";
+import { validateCanonicalName } from "#src/canonical-name.js";
 import { cac } from "cac";
-import { runAddCommand } from "./commands/add.js";
-import { runInitCommand } from "./commands/init.js";
-import { runInspectCommand } from "./commands/inspect.js";
-import { runInstallCommand } from "./commands/install.js";
-import { runListCommand } from "./commands/list.js";
-import { runRenameCommand } from "./commands/rename.js";
-import { runRemoveCommand } from "./commands/remove.js";
-import { runUpdateCommand } from "./commands/update.js";
-import { SkmError, fromSkmPromise, isSkmError, okSkm, toSkmError } from "./errors.js";
-import { renderCliResultAsText, type CliResult } from "./output.js";
-import { renderCliResultWithInkResult } from "./ui/render.js";
+import { runAddCommand } from "#src/commands/add.js";
+import { runInitCommand } from "#src/commands/init.js";
+import { runInspectCommand } from "#src/commands/inspect.js";
+import { runInstallCommand } from "#src/commands/install.js";
+import { runListCommand } from "#src/commands/list.js";
+import { runRenameCommand } from "#src/commands/rename.js";
+import { runRemoveCommand } from "#src/commands/remove.js";
+import { runUpdateCommand } from "#src/commands/update.js";
+import { SkmError, fromSkmPromise, isSkmError, okSkm, toSkmError } from "#src/errors.js";
+import { renderCliResultAsText, type CliResult } from "#src/output.js";
+import { renderCliResultWithInkResult } from "#src/ui/render.js";
 
 type SharedOptions = {
   help: boolean;

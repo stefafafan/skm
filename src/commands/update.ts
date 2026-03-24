@@ -2,16 +2,16 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { validateCanonicalName } from "../canonical-name.js";
-import { SkmError } from "../errors.js";
-import { removeIfExists } from "../fs.js";
-import { hashDirectory } from "../hash.js";
-import { materializeSkill } from "../materialize.js";
-import { readLockfile, readManifest, writeLockfile } from "../manifest.js";
-import { type CliResult, type CliSkillSummary } from "../output.js";
-import { resolveScope } from "../scope.js";
-import { defaultRequestedRef, fetchSkillToTempDir, isFixedRef, parseSource } from "../source.js";
-import { storeSkill } from "../store.js";
+import { validateCanonicalName } from "#src/canonical-name.js";
+import { SkmError } from "#src/errors.js";
+import { removeIfExists } from "#src/fs.js";
+import { hashDirectory } from "#src/hash.js";
+import { materializeSkill } from "#src/materialize.js";
+import { readLockfile, readManifest, writeLockfile } from "#src/manifest.js";
+import { type CliResult, type CliSkillSummary } from "#src/output.js";
+import { resolveScope } from "#src/scope.js";
+import { defaultRequestedRef, fetchSkillToTempDir, isFixedRef, parseSource } from "#src/source.js";
+import { storeSkill } from "#src/store.js";
 
 export async function runUpdateCommand(options: {
   cwd: string;
