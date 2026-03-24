@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { SkmError } from "./errors.js";
+import { fromSkmPromise, type SkmResultAsync, SkmError } from "./errors.js";
 import { ensureDir, pathExists } from "./fs.js";
 
 export type MaterializationStrategy = "wrap" | "link" | "copy";
@@ -169,6 +169,40 @@ export async function writeManifest(manifestPath: string, manifest: SkillsManife
     manifestPath,
     `${JSON.stringify({ outputDir: manifest.outputDir, skills: manifest.skills }, null, 2)}\n`,
   );
+}
+
+export function initManifestResult(
+  manifestPath: string,
+  force: boolean,
+  outputDir?: string,
+): SkmResultAsync<void> {
+  return fromSkmPromise(initManifest(manifestPath, force, outputDir));
+}
+
+export function initLockfileResult(lockfilePath: string, force: boolean): SkmResultAsync<void> {
+  return fromSkmPromise(initLockfile(lockfilePath, force));
+}
+
+export function readManifestResult(manifestPath: string): SkmResultAsync<SkillsManifest> {
+  return fromSkmPromise(readManifest(manifestPath));
+}
+
+export function writeManifestResult(
+  manifestPath: string,
+  manifest: SkillsManifest,
+): SkmResultAsync<void> {
+  return fromSkmPromise(writeManifest(manifestPath, manifest));
+}
+
+export function readLockfileResult(lockfilePath: string): SkmResultAsync<SkillsLockfile> {
+  return fromSkmPromise(readLockfile(lockfilePath));
+}
+
+export function writeLockfileResult(
+  lockfilePath: string,
+  lockfile: SkillsLockfile,
+): SkmResultAsync<void> {
+  return fromSkmPromise(writeLockfile(lockfilePath, lockfile));
 }
 
 export async function readLockfile(lockfilePath: string): Promise<SkillsLockfile> {

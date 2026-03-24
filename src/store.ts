@@ -1,41 +1,76 @@
 import path from "node:path";
 
-import { SkmError } from "./errors.js";
-import { copyDirectory, ensureDir, pathExists } from "./fs.js";
+import { errSkm, okSkm, unwrapOrThrow, type SkmResult } from "./errors.js";
+import { copyDirectoryResult, ensureDirResult, pathExistsResult } from "./fs.js";
 
 export async function storeSkill(
   storeDir: string,
   sourceDir: string,
   integrity: string,
 ): Promise<string> {
-  await ensureDir(storeDir);
-  const destination = storePath(storeDir, integrity);
-  if (!(await pathExists(destination))) {
-    await copyDirectory(sourceDir, destination);
+  return unwrapOrThrow(await storeSkillResult(storeDir, sourceDir, integrity));
+}
+
+export async function storeSkillResult(
+  storeDir: string,
+  sourceDir: string,
+  integrity: string,
+): Promise<SkmResult<string>> {
+  const ensureResult = await ensureDirResult(storeDir);
+  if (ensureResult.isErr()) {
+    return errSkm(ensureResult.error);
   }
-  return destination;
+  const destinationResult = storePathResult(storeDir, integrity);
+  if (destinationResult.isErr()) {
+    return errSkm(destinationResult.error);
+  }
+  const destination = destinationResult.value;
+  const existsResult = await pathExistsResult(destination);
+  if (existsResult.isErr()) {
+    return errSkm(existsResult.error);
+  }
+  if (!existsResult.value) {
+    const copyResult = await copyDirectoryResult(sourceDir, destination);
+    if (copyResult.isErr()) {
+      return errSkm(copyResult.error);
+    }
+  }
+  return okSkm(destination);
 }
 
 export function storePath(storeDir: string, integrity: string): string {
-  validateIntegrityForStorePath(integrity);
+  return unwrapOrThrow(storePathResult(storeDir, integrity));
+}
+
+export function storePathResult(storeDir: string, integrity: string): SkmResult<string> {
+  const integrityResult = validateIntegrityForStorePath(integrity);
+  if (integrityResult.isErr()) {
+    return errSkm(integrityResult.error);
+  }
 
   const destination = path.resolve(storeDir, integrity);
   const relativePath = path.relative(storeDir, destination);
-  if (relativePath === ".." || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
-    throw new SkmError(`Invalid integrity value for store path: ${integrity}`, 2);
+  if (
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    return errSkm(`Invalid integrity value for store path: ${integrity}`, 2);
   }
 
-  return destination;
+  return okSkm(destination);
 }
 
-function validateIntegrityForStorePath(integrity: string): void {
+function validateIntegrityForStorePath(integrity: string): SkmResult<void> {
   if (integrity.length === 0 || path.isAbsolute(integrity)) {
-    throw new SkmError(`Invalid integrity value for store path: ${integrity}`, 2);
+    return errSkm(`Invalid integrity value for store path: ${integrity}`, 2);
   }
 
   for (const segment of integrity.split(/[\\/]+/)) {
     if (segment.length === 0 || segment === "." || segment === "..") {
-      throw new SkmError(`Invalid integrity value for store path: ${integrity}`, 2);
+      return errSkm(`Invalid integrity value for store path: ${integrity}`, 2);
     }
   }
+
+  return okSkm(undefined);
 }

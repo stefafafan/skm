@@ -3,7 +3,8 @@ import test from "node:test";
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
 
-import { resolveScope } from "../src/scope.js";
+import { SkmError } from "../src/errors.js";
+import { resolveScope, resolveScopeResult } from "../src/scope.js";
 import { createTempDir, writeJsonFile } from "./helpers/fixture.js";
 
 test("resolveScope defaults to project scope when an ancestor skills.json exists", async () => {
@@ -201,4 +202,50 @@ test("resolveScope ignores ambient XDG_CONFIG_HOME unless it is passed explicitl
       process.env.XDG_CONFIG_HOME = previousXdgConfigHome;
     }
   }
+});
+
+test("resolveScopeResult returns ok when project manifest specifies outputDir", async () => {
+  const root = await createTempDir("skm-scope-result-");
+  const projectRoot = path.join(root, "repo");
+  const nested = path.join(projectRoot, "packages", "feature");
+  await mkdir(nested, { recursive: true });
+  await writeJsonFile(path.join(projectRoot, "skills.json"), {
+    outputDir: ".myagent/skills",
+    skills: {},
+  });
+
+  const result = await resolveScopeResult({
+    cwd: nested,
+    homeDir: path.join(root, "home"),
+  });
+
+  assert(result.isOk());
+  const scope = result.match(
+    (value) => value,
+    () => {
+      throw new Error("expected scope to resolve");
+    },
+  );
+
+  assert.equal(scope.kind, "project");
+  assert.equal(scope.generatedSkillsDir, path.join(projectRoot, ".myagent", "skills"));
+});
+
+test("resolveScopeResult returns an SkmError when HOME is missing", async () => {
+  const root = await createTempDir("skm-scope-result-");
+  const cwd = path.join(root, "workspace");
+  await mkdir(cwd, { recursive: true });
+
+  const result = await resolveScopeResult({ cwd, homeDir: "" });
+  assert(result.isErr());
+  const error = result.match(
+    () => {
+      throw new Error("expected an error");
+    },
+    (err) => err,
+  );
+
+  assert(error instanceof SkmError);
+  assert.equal(error.exitCode, 2);
+  assert.match(error.message, /HOME is required/);
 });

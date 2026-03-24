@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import path from "node:path";
 import { mkdir } from "node:fs/promises";
+import path from "node:path";
+import test from "node:test";
 
+import { SkmError } from "../src/errors.js";
 import {
   DEFAULT_OUTPUT_DIR,
-  initManifest,
   initLockfile,
+  initManifest,
   readLockfile,
   readManifest,
+  readManifestResult,
   writeLockfile,
   writeManifest,
 } from "../src/manifest.js";
@@ -112,10 +114,7 @@ test("readManifest rejects malformed nested skill entries", async () => {
     },
   });
 
-  await assert.rejects(
-    readManifest(manifestPath),
-    /Invalid manifest shape/,
-  );
+  await assert.rejects(readManifest(manifestPath), /Invalid manifest shape/);
 });
 
 test("readLockfile rejects malformed nested skill entries", async () => {
@@ -132,10 +131,7 @@ test("readLockfile rejects malformed nested skill entries", async () => {
     },
   });
 
-  await assert.rejects(
-    readLockfile(lockfilePath),
-    /Invalid lockfile shape/,
-  );
+  await assert.rejects(readLockfile(lockfilePath), /Invalid lockfile shape/);
 });
 
 test("writeLockfile persists resolved metadata separately from the manifest", async () => {
@@ -155,4 +151,51 @@ test("writeLockfile persists resolved metadata separately from the manifest", as
   const lockfile = await readLockfile(lockfilePath);
   assert.equal(lockfile.skills["review-code-quality"]?.resolved, "abc123");
   assert.equal(lockfile.skills["review-code-quality"]?.integrity, "sha256-deadbeef");
+});
+
+test("readManifestResult returns ok when the manifest is readable", async () => {
+  const root = await createTempDir("skm-manifest-result-");
+  const manifestPath = path.join(root, "skills.json");
+  await mkdir(root, { recursive: true });
+
+  await writeJsonFile(manifestPath, {
+    skills: {
+      "review-code-quality": {
+        source: "https://example.com/example/skills/tree/main/skills/hello-skill",
+      },
+    },
+  });
+
+  const result = await readManifestResult(manifestPath);
+  assert(result.isOk());
+  const manifest = result.match(
+    (value) => value,
+    () => {
+      throw new Error("expected manifest to resolve");
+    },
+  );
+
+  assert.equal(manifest.outputDir, DEFAULT_OUTPUT_DIR);
+  assert.equal(
+    manifest.skills["review-code-quality"]?.source,
+    "https://example.com/example/skills/tree/main/skills/hello-skill",
+  );
+});
+
+test("readManifestResult returns an SkmError when the manifest is missing", async () => {
+  const root = await createTempDir("skm-manifest-result-");
+  const manifestPath = path.join(root, "skills.json");
+
+  const result = await readManifestResult(manifestPath);
+  assert(result.isErr());
+  const error = result.match(
+    () => {
+      throw new Error("expected an error");
+    },
+    (err) => err,
+  );
+
+  assert(error instanceof SkmError);
+  assert.equal(error.exitCode, 2);
+  assert.match(error.message, /Manifest not found/);
 });

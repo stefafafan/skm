@@ -1,42 +1,97 @@
 import { cp, lstat, mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { SkmError } from "./errors.js";
+import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "./errors.js";
 
 export async function pathExists(targetPath: string): Promise<boolean> {
+  return unwrapOrThrow(await pathExistsResult(targetPath));
+}
+
+export async function pathExistsResult(targetPath: string): Promise<SkmResult<boolean>> {
   try {
     await stat(targetPath);
-    return true;
+    return okSkm(true);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
+      return okSkm(false);
     }
-    throw error;
+    return errSkm(toSkmError(error));
   }
 }
 
 export async function ensureDir(dirPath: string): Promise<void> {
-  await mkdir(dirPath, { recursive: true });
+  unwrapOrThrow(await ensureDirResult(dirPath));
+}
+
+export async function ensureDirResult(dirPath: string): Promise<SkmResult<void>> {
+  try {
+    await mkdir(dirPath, { recursive: true });
+    return okSkm(undefined);
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
 }
 
 export async function removeIfExists(targetPath: string): Promise<void> {
-  await rm(targetPath, { recursive: true, force: true });
+  unwrapOrThrow(await removeIfExistsResult(targetPath));
+}
+
+export async function removeIfExistsResult(targetPath: string): Promise<SkmResult<void>> {
+  try {
+    await rm(targetPath, { recursive: true, force: true });
+    return okSkm(undefined);
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
 }
 
 export async function copyDirectory(sourceDir: string, destinationDir: string): Promise<void> {
-  await removeIfExists(destinationDir);
-  await ensureDir(path.dirname(destinationDir));
-  await cp(sourceDir, destinationDir, { recursive: true, preserveTimestamps: true });
+  unwrapOrThrow(await copyDirectoryResult(sourceDir, destinationDir));
+}
+
+export async function copyDirectoryResult(
+  sourceDir: string,
+  destinationDir: string,
+): Promise<SkmResult<void>> {
+  const removeResult = await removeIfExistsResult(destinationDir);
+  if (removeResult.isErr()) {
+    return removeResult;
+  }
+
+  const ensureResult = await ensureDirResult(path.dirname(destinationDir));
+  if (ensureResult.isErr()) {
+    return ensureResult;
+  }
+
+  try {
+    await cp(sourceDir, destinationDir, { recursive: true, preserveTimestamps: true });
+    return okSkm(undefined);
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
 }
 
 export async function listFilesRecursive(rootDir: string): Promise<string[]> {
-  const entries = await readdir(rootDir, { withFileTypes: true });
+  return unwrapOrThrow(await listFilesRecursiveResult(rootDir));
+}
+
+export async function listFilesRecursiveResult(rootDir: string): Promise<SkmResult<string[]>> {
+  let entries;
+  try {
+    entries = await readdir(rootDir, { withFileTypes: true });
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
   const files: string[] = [];
 
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
     const fullPath = path.join(rootDir, entry.name);
     if (entry.isDirectory()) {
-      for (const nested of await listFilesRecursive(fullPath)) {
+      const nestedResult = await listFilesRecursiveResult(fullPath);
+      if (nestedResult.isErr()) {
+        return nestedResult;
+      }
+      for (const nested of nestedResult.value) {
         files.push(path.join(entry.name, nested));
       }
       continue;
@@ -46,37 +101,45 @@ export async function listFilesRecursive(rootDir: string): Promise<string[]> {
     }
   }
 
-  return files;
+  return okSkm(files);
 }
 
 export async function isDirectory(targetPath: string): Promise<boolean> {
+  return unwrapOrThrow(await isDirectoryResult(targetPath));
+}
+
+export async function isDirectoryResult(targetPath: string): Promise<SkmResult<boolean>> {
   try {
-    return (await lstat(targetPath)).isDirectory();
+    return okSkm((await lstat(targetPath)).isDirectory());
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
+      return okSkm(false);
     }
-    throw error;
+    return errSkm(toSkmError(error));
   }
 }
 
 export async function assertRegularFile(targetPath: string, description: string): Promise<void> {
+  unwrapOrThrow(await assertRegularFileResult(targetPath, description));
+}
+
+export async function assertRegularFileResult(
+  targetPath: string,
+  description: string,
+): Promise<SkmResult<void>> {
   try {
     const fileStats = await lstat(targetPath);
     if (fileStats.isFile()) {
-      return;
+      return okSkm(undefined);
     }
     if (fileStats.isSymbolicLink()) {
-      throw new SkmError(`${description} cannot be a symlink`, 4);
+      return errSkm(`${description} cannot be a symlink`, 4);
     }
-    throw new SkmError(`${description} must be a regular file`, 4);
+    return errSkm(`${description} must be a regular file`, 4);
   } catch (error) {
-    if (error instanceof SkmError) {
-      throw error;
-    }
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      throw new SkmError(`${description} is missing`, 4);
+      return errSkm(`${description} is missing`, 4);
     }
-    throw error;
+    return errSkm(toSkmError(error));
   }
 }

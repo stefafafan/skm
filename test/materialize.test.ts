@@ -3,7 +3,7 @@ import test from "node:test";
 import path from "node:path";
 import { access, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 
-import { materializeSkill } from "../src/materialize.js";
+import { materializeSkillResult } from "../src/materialize.js";
 import { createTempDir } from "./helpers/fixture.js";
 
 test("materializeSkill wraps SKILL.md with the canonical name and preserves support files", async () => {
@@ -25,7 +25,7 @@ test("materializeSkill wraps SKILL.md with the canonical name and preserves supp
   );
   await writeFile(path.join(sourceDir, "notes.txt"), "notes\n");
 
-  const outputDir = await materializeSkill({
+  const result = await materializeSkillResult({
     canonicalName: "review-code-quality",
     sourceDir,
     generatedSkillsDir: generatedDir,
@@ -33,6 +33,8 @@ test("materializeSkill wraps SKILL.md with the canonical name and preserves supp
     resolved: "abc123def456",
     strategy: "wrap",
   });
+  assert.equal(result.isOk(), true);
+  const outputDir = result._unsafeUnwrap();
 
   const originalSkill = await readFile(path.join(sourceDir, "SKILL.md"), "utf8");
   const wrappedSkill = await readFile(path.join(outputDir, "SKILL.md"), "utf8");
@@ -45,7 +47,7 @@ test("materializeSkill wraps SKILL.md with the canonical name and preserves supp
   await assert.rejects(access(path.join(outputDir, ".skm-meta.json")));
 });
 
-test("materializeSkill rejects a symlinked SKILL.md in wrap mode before rewriting its target", async () => {
+test("materializeSkillResult returns an err for a symlinked SKILL.md in wrap mode", async () => {
   const root = await createTempDir("skm-materialize-symlink-");
   const sourceDir = path.join(root, "source");
   const generatedDir = path.join(root, ".agents", "skills");
@@ -54,24 +56,24 @@ test("materializeSkill rejects a symlinked SKILL.md in wrap mode before rewritin
   await writeFile(redirectedFile, "leave me alone\n");
   await symlink(path.relative(sourceDir, redirectedFile), path.join(sourceDir, "SKILL.md"));
 
-  await assert.rejects(
-    materializeSkill({
-      canonicalName: "review-code-quality",
-      sourceDir,
-      generatedSkillsDir: generatedDir,
-      manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
-      resolved: "abc123def456",
-      strategy: "wrap",
-    }),
-    /SKILL\.md.*symlink/i,
-  );
+  const result = await materializeSkillResult({
+    canonicalName: "review-code-quality",
+    sourceDir,
+    generatedSkillsDir: generatedDir,
+    manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+    resolved: "abc123def456",
+    strategy: "wrap",
+  });
+
+  assert.equal(result.isErr(), true);
+  assert.match(result._unsafeUnwrapErr().message, /SKILL\.md.*symlink/i);
 
   assert.equal(await readFile(redirectedFile, "utf8"), "leave me alone\n");
   await assert.rejects(access(path.join(generatedDir, "review-code-quality")));
   await rm(root, { recursive: true, force: true });
 });
 
-test("materializeSkill rejects a symlinked SKILL.md in link mode", async () => {
+test("materializeSkillResult returns an err for a symlinked SKILL.md in link mode", async () => {
   const root = await createTempDir("skm-materialize-link-symlink-");
   const sourceDir = path.join(root, "source");
   const generatedDir = path.join(root, ".agents", "skills");
@@ -80,74 +82,70 @@ test("materializeSkill rejects a symlinked SKILL.md in link mode", async () => {
   await writeFile(redirectedFile, "leave me alone\n");
   await symlink(path.relative(sourceDir, redirectedFile), path.join(sourceDir, "SKILL.md"));
 
-  await assert.rejects(
-    materializeSkill({
-      canonicalName: "review-code-quality",
-      sourceDir,
-      generatedSkillsDir: generatedDir,
-      manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
-      resolved: "abc123def456",
-      strategy: "link",
-    }),
-    /SKILL\.md.*symlink/i,
-  );
+  const result = await materializeSkillResult({
+    canonicalName: "review-code-quality",
+    sourceDir,
+    generatedSkillsDir: generatedDir,
+    manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+    resolved: "abc123def456",
+    strategy: "link",
+  });
+
+  assert.equal(result.isErr(), true);
+  assert.match(result._unsafeUnwrapErr().message, /SKILL\.md.*symlink/i);
 
   assert.equal(await readFile(redirectedFile, "utf8"), "leave me alone\n");
   await assert.rejects(access(path.join(generatedDir, "review-code-quality")));
   await rm(root, { recursive: true, force: true });
 });
 
-test("materializeSkill rejects unsafe canonical names", async () => {
+test("materializeSkillResult returns an err for unsafe canonical names", async () => {
   const root = await createTempDir("skm-materialize-");
   const sourceDir = path.join(root, "source");
   const generatedDir = path.join(root, ".agents", "skills");
   await mkdir(sourceDir, { recursive: true });
   await writeFile(path.join(sourceDir, "SKILL.md"), "# Hello\n");
 
-  await assert.rejects(
-    () =>
-      materializeSkill({
-        canonicalName: "../../escaped-skill",
-        sourceDir,
-        generatedSkillsDir: generatedDir,
-        manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
-        resolved: "abc123def456",
-        strategy: "wrap",
-      }),
-    /invalid canonical name/i,
-  );
+  const result = await materializeSkillResult({
+    canonicalName: "../../escaped-skill",
+    sourceDir,
+    generatedSkillsDir: generatedDir,
+    manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+    resolved: "abc123def456",
+    strategy: "wrap",
+  });
+
+  assert.equal(result.isErr(), true);
+  assert.match(result._unsafeUnwrapErr().message, /invalid canonical name/i);
   await assert.rejects(access(path.join(root, "escaped-skill")));
 });
 
-test("materializeSkill rejects canonical names with control or windows-hostile characters", async () => {
+test("materializeSkillResult returns an err for control or windows-hostile canonical names", async () => {
   const root = await createTempDir("skm-materialize-");
   const sourceDir = path.join(root, "source");
   const generatedDir = path.join(root, ".agents", "skills");
   await mkdir(sourceDir, { recursive: true });
   await writeFile(path.join(sourceDir, "SKILL.md"), "# Hello\n");
 
-  await assert.rejects(
-    () =>
-      materializeSkill({
-        canonicalName: "bad:name",
-        sourceDir,
-        generatedSkillsDir: generatedDir,
-        manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
-        resolved: "abc123def456",
-        strategy: "wrap",
-      }),
-    /invalid canonical name/i,
-  );
-  await assert.rejects(
-    () =>
-      materializeSkill({
-        canonicalName: "bad\u0000name",
-        sourceDir,
-        generatedSkillsDir: generatedDir,
-        manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
-        resolved: "abc123def456",
-        strategy: "wrap",
-      }),
-    /invalid canonical name/i,
-  );
+  const windowsHostileResult = await materializeSkillResult({
+    canonicalName: "bad:name",
+    sourceDir,
+    generatedSkillsDir: generatedDir,
+    manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+    resolved: "abc123def456",
+    strategy: "wrap",
+  });
+  assert.equal(windowsHostileResult.isErr(), true);
+  assert.match(windowsHostileResult._unsafeUnwrapErr().message, /invalid canonical name/i);
+
+  const controlCharacterResult = await materializeSkillResult({
+    canonicalName: "bad\u0000name",
+    sourceDir,
+    generatedSkillsDir: generatedDir,
+    manifestSource: "https://example.com/example/skills/tree/main/skills/hello-skill",
+    resolved: "abc123def456",
+    strategy: "wrap",
+  });
+  assert.equal(controlCharacterResult.isErr(), true);
+  assert.match(controlCharacterResult._unsafeUnwrapErr().message, /invalid canonical name/i);
 });
