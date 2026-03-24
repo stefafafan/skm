@@ -11,7 +11,7 @@ import { runListCommand } from "./commands/list";
 import { runRenameCommand } from "./commands/rename";
 import { runRemoveCommand } from "./commands/remove";
 import { runUpdateCommand } from "./commands/update";
-import { SkmError, isSkmError } from "./errors";
+import { getErrorMessage, SkmError, isSkmError } from "./errors";
 import { renderCliResultAsText, type CliResult } from "./output";
 import { renderCliResultWithInk } from "./ui/render";
 
@@ -74,8 +74,7 @@ export async function main(argv: string[], context?: MainContext): Promise<numbe
       process.stderr.write(`${error.message}\n`);
       return 2;
     }
-    const unknown = error as Error;
-    process.stderr.write(`${unknown.message}\n`);
+    process.stderr.write(`${getErrorMessage(error)}\n`);
     return 1;
   }
 }
