@@ -1,9 +1,24 @@
 import { readFile, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { safeTry } from "neverthrow";
 
-import { resolveCanonicalSkillPath, validateCanonicalName } from "./canonical-name.js";
-import { SkmError } from "./errors.js";
-import { assertRegularFile, copyDirectory, ensureDir, pathExists, removeIfExists } from "./fs.js";
+import { resolveCanonicalSkillPathResult, validateCanonicalNameResult } from "./canonical-name.js";
+import {
+  errSkm,
+  fromSkmPromise,
+  okSkm,
+  toSkmError,
+  unwrapOrThrow,
+  type SkmError,
+  type SkmResult,
+} from "./errors.js";
+import {
+  assertRegularFileResult,
+  copyDirectoryResult,
+  ensureDirResult,
+  pathExistsResult,
+  removeIfExistsResult,
+} from "./fs.js";
 import type { MaterializationStrategy } from "./manifest.js";
 
 export type MaterializeSkillOptions = {
@@ -16,53 +31,83 @@ export type MaterializeSkillOptions = {
 };
 
 export async function materializeSkill(options: MaterializeSkillOptions): Promise<string> {
-  await assertRegularFile(
-    path.join(options.sourceDir, "SKILL.md"),
-    `Skill source ${options.manifestSource} SKILL.md`,
-  );
-  const canonicalName = validateCanonicalName(options.canonicalName);
-  const outputDir = resolveCanonicalSkillPath(options.generatedSkillsDir, canonicalName);
-  await ensureDir(options.generatedSkillsDir);
-  await removeIfExists(outputDir);
-
-  if (options.strategy === "link") {
-    await symlink(options.sourceDir, outputDir, process.platform === "win32" ? "junction" : "dir");
-    return outputDir;
-  }
-
-  await copyDirectory(options.sourceDir, outputDir);
-
-  if (options.strategy === "wrap") {
-    const wrapped = await wrapSkillMarkdown(
-      path.join(outputDir, "SKILL.md"),
-      canonicalName,
-    );
-    await writeFile(path.join(outputDir, "SKILL.md"), wrapped);
-  } else if (!(await pathExists(path.join(outputDir, "SKILL.md")))) {
-    throw new SkmError(`Materialized skill at ${outputDir} is missing SKILL.md`, 4);
-  }
-
-  return outputDir;
+  return unwrapOrThrow(await materializeSkillResult(options));
 }
 
-async function wrapSkillMarkdown(skillMdPath: string, canonicalName: string): Promise<string> {
-  const raw = await readFile(skillMdPath, "utf8");
+export async function materializeSkillResult(
+  options: MaterializeSkillOptions,
+): Promise<SkmResult<string>> {
+  return safeTry<string, SkmError>(async function* () {
+    yield* await assertRegularFileResult(
+      path.join(options.sourceDir, "SKILL.md"),
+      `Skill source ${options.manifestSource} SKILL.md`,
+    );
+
+    const canonicalName = yield* validateCanonicalNameResult(options.canonicalName);
+    const outputDir = yield* resolveCanonicalSkillPathResult(
+      options.generatedSkillsDir,
+      canonicalName,
+    );
+
+    yield* await ensureDirResult(options.generatedSkillsDir);
+    yield* await removeIfExistsResult(outputDir);
+
+    if (options.strategy === "link") {
+      yield* fromSkmPromise(
+        symlink(options.sourceDir, outputDir, process.platform === "win32" ? "junction" : "dir"),
+        toSkmError,
+      );
+      return okSkm(outputDir);
+    }
+
+    yield* await copyDirectoryResult(options.sourceDir, outputDir);
+
+    if (options.strategy === "wrap") {
+      const wrappedSkill = yield* await wrapSkillMarkdownResult(
+        path.join(outputDir, "SKILL.md"),
+        canonicalName,
+      );
+      yield* fromSkmPromise(writeFile(path.join(outputDir, "SKILL.md"), wrappedSkill), toSkmError);
+      return okSkm(outputDir);
+    }
+
+    const outputSkillExists = yield* await pathExistsResult(path.join(outputDir, "SKILL.md"));
+    if (!outputSkillExists) {
+      return errSkm(`Materialized skill at ${outputDir} is missing SKILL.md`, 4);
+    }
+
+    return okSkm(outputDir);
+  });
+}
+
+async function wrapSkillMarkdownResult(
+  skillMdPath: string,
+  canonicalName: string,
+): Promise<SkmResult<string>> {
+  let raw: string;
+  try {
+    raw = await readFile(skillMdPath, "utf8");
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
 
   if (!raw.startsWith("---\n")) {
-    return [
-      "---",
-      `name: ${canonicalName}`,
-      "description: Materialized by skm",
-      "---",
-      "",
-      raw.trimEnd(),
-      "",
-    ].join("\n");
+    return okSkm(
+      [
+        "---",
+        `name: ${canonicalName}`,
+        "description: Materialized by skm",
+        "---",
+        "",
+        raw.trimEnd(),
+        "",
+      ].join("\n"),
+    );
   }
 
   const endIndex = raw.indexOf("\n---", 4);
   if (endIndex === -1) {
-    return `${raw.trimEnd()}\n`;
+    return okSkm(`${raw.trimEnd()}\n`);
   }
 
   const frontmatter = raw.slice(4, endIndex).split("\n");
@@ -79,5 +124,5 @@ async function wrapSkillMarkdown(skillMdPath: string, canonicalName: string): Pr
     nextFrontmatter.unshift(`name: ${canonicalName}`);
   }
 
-  return ["---", ...nextFrontmatter, "---", "", body.trimEnd(), ""].join("\n");
+  return okSkm(["---", ...nextFrontmatter, "---", "", body.trimEnd(), ""].join("\n"));
 }

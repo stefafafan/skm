@@ -10,9 +10,9 @@ import { runListCommand } from "./commands/list.js";
 import { runRenameCommand } from "./commands/rename.js";
 import { runRemoveCommand } from "./commands/remove.js";
 import { runUpdateCommand } from "./commands/update.js";
-import { getErrorMessage, SkmError, isSkmError } from "./errors.js";
+import { SkmError, fromSkmPromise, isSkmError, okSkm, toSkmError } from "./errors.js";
 import { renderCliResultAsText, type CliResult } from "./output.js";
-import { renderCliResultWithInk } from "./ui/render.js";
+import { renderCliResultWithInkResult } from "./ui/render.js";
 
 type SharedOptions = {
   help: boolean;
@@ -55,27 +55,33 @@ export async function main(argv: string[], context?: MainContext): Promise<numbe
   const stdoutIsTTY = context?.stdoutIsTTY ?? process.stdout.isTTY ?? false;
   const stdoutColumns = context?.stdoutColumns ?? process.stdout.columns;
 
-  try {
-    const output = await dispatch(argv, cwd, env);
-    if (output) {
-      const renderedOutput = stdoutIsTTY
-        ? await renderCliResultWithInk(output, { columns: stdoutColumns })
-        : renderCliResultAsText(output);
-      process.stdout.write(renderedOutput.endsWith("\n") ? renderedOutput : `${renderedOutput}\n`);
-    }
-    return 0;
-  } catch (error) {
-    if (isSkmError(error)) {
-      process.stderr.write(`${error.message}\n`);
-      return error.exitCode;
-    }
-    if (isCacError(error)) {
-      process.stderr.write(`${error.message}\n`);
-      return 2;
-    }
-    process.stderr.write(`${getErrorMessage(error)}\n`);
-    return 1;
+  const outputResult = await fromSkmPromise(dispatch(argv, cwd, env), toCliError);
+  if (outputResult.isErr()) {
+    process.stderr.write(`${outputResult.error.message}\n`);
+    return outputResult.error.exitCode;
   }
+
+  const renderedOutputResult = stdoutIsTTY
+    ? await renderCliResultWithInkResult(outputResult.value, { columns: stdoutColumns })
+    : okSkm(renderCliResultAsText(outputResult.value));
+  if (renderedOutputResult.isErr()) {
+    process.stderr.write(`${renderedOutputResult.error.message}\n`);
+    return renderedOutputResult.error.exitCode;
+  }
+
+  const renderedOutput = renderedOutputResult.value;
+  process.stdout.write(renderedOutput.endsWith("\n") ? renderedOutput : `${renderedOutput}\n`);
+  return 0;
+}
+
+function toCliError(error: unknown): SkmError {
+  if (isSkmError(error)) {
+    return error;
+  }
+  if (isCacError(error)) {
+    return new SkmError(error.message, 2);
+  }
+  return toSkmError(error);
 }
 
 async function dispatch(argv: string[], cwd: string, env: NodeJS.ProcessEnv): Promise<CliResult> {
@@ -202,12 +208,7 @@ function normalizeDashPrefixedOptionValues(argv: string[]): string[] {
       break;
     }
     const next = argv[index + 1];
-    if (
-      current &&
-      optionsWithValues.has(current) &&
-      next &&
-      /^-[^-]/.test(next)
-    ) {
+    if (current && optionsWithValues.has(current) && next && /^-[^-]/.test(next)) {
       normalized.push(`${current}=${next}`);
       index += 1;
       continue;

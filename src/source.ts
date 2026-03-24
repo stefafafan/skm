@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { validateCanonicalName } from "./canonical-name.js";
-import { SkmError } from "./errors.js";
+import { fromSkmPromise, fromSkmThrowable, SkmError, type SkmResultAsync } from "./errors.js";
 import { assertRegularFile, copyDirectory, removeIfExists } from "./fs.js";
 import { cloneAndCheckout, readHeadCommit, runGit } from "./git.js";
 
@@ -55,6 +55,8 @@ export type DiscoveredSkill = {
   absoluteDir: string;
 };
 
+export const parseSourceResult = fromSkmThrowable((input: string) => parseSource(input));
+
 export function parseSource(input: string): ParsedSource {
   const parsedUrlSource = parseHttpsGitHubSource(input);
   if (parsedUrlSource) {
@@ -77,6 +79,13 @@ export function parseSource(input: string): ParsedSource {
   }
 
   throw new SkmError(`Unsupported source: ${input}`, 2);
+}
+
+export function fetchSkillToTempDirResult(
+  options: FetchSkillOptions,
+  tempRoot?: string,
+): SkmResultAsync<FetchedSkill> {
+  return fromSkmPromise(fetchSkillToTempDir(options, tempRoot));
 }
 
 export async function fetchSkillToTempDir(
@@ -326,7 +335,10 @@ async function resolveGitCommit(repoDir: string, ref: string): Promise<string | 
   for (const candidate of candidates) {
     try {
       return (
-        await runGit(["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`], repoDir)
+        await runGit(
+          ["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`],
+          repoDir,
+        )
       ).trim();
     } catch {
       continue;

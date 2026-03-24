@@ -4,13 +4,12 @@ import path from "node:path";
 import test from "node:test";
 
 import type { CliResult } from "../src/output.js";
-import { renderCliResultWithInk } from "../src/ui/render.js";
+import { renderCliResultWithInkResult } from "../src/ui/render.js";
 
 const compiledTestFilePath = fileURLToPath(import.meta.url);
 
-test("renderCliResultWithInk renders the built summary view through the compiled renderer path", async () => {
+test("renderCliResultWithInkResult returns ok for a richer summary view", async () => {
   assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
-
   const result: CliResult = {
     kind: "summary",
     command: "add",
@@ -33,7 +32,9 @@ test("renderCliResultWithInk renders the built summary view through the compiled
     ],
   };
 
-  const output = await renderCliResultWithInk(result, { columns: 100 });
+  const rendered = await renderCliResultWithInkResult(result, { columns: 100 });
+  assert.equal(rendered.isOk(), true);
+  const output = rendered._unsafeUnwrap();
 
   assert.match(output, /\[ok\] add/i);
   assert.match(output, /scope: project/i);
@@ -42,9 +43,8 @@ test("renderCliResultWithInk renders the built summary view through the compiled
   assert.match(output, /58c32674139a663bb3668c4d16b49f1daf3b5af2/);
 });
 
-test("renderCliResultWithInk renders list output through the compiled renderer path", async () => {
+test("renderCliResultWithInkResult returns ok for list output with effective state", async () => {
   assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
-
   const result: CliResult = {
     kind: "list",
     all: true,
@@ -68,7 +68,9 @@ test("renderCliResultWithInk renders list output through the compiled renderer p
     ],
   };
 
-  const output = await renderCliResultWithInk(result, { columns: 100 });
+  const rendered = await renderCliResultWithInkResult(result, { columns: 100 });
+  assert.equal(rendered.isOk(), true);
+  const output = rendered._unsafeUnwrap();
 
   assert.match(output, /Installed skills/i);
   assert.match(output, /shared-skill/);

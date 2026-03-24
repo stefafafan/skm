@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { SkmError } from "./errors.js";
+import { fromSkmPromise, type SkmResultAsync, SkmError } from "./errors.js";
 import { pathExists } from "./fs.js";
 import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest.js";
 
@@ -50,6 +50,10 @@ export async function resolveScope(options: ResolveScopeOptions): Promise<ScopeP
     return resolveManifestOutputDir(projectScope(discoveredProjectRoot));
   }
   return resolveManifestOutputDir(globalScope(homeDir, options.xdgConfigHome));
+}
+
+export function resolveScopeResult(options: ResolveScopeOptions): SkmResultAsync<ScopePaths> {
+  return fromSkmPromise(resolveScope(options));
 }
 
 export async function findProjectRoot(startDir: string): Promise<string | undefined> {
@@ -144,8 +148,5 @@ export function resolveProjectOutputDir(projectRoot: string, outputDir: string):
 
 function isPathInside(rootDir: string, targetDir: string): boolean {
   const relativePath = path.relative(rootDir, targetDir);
-  return (
-    relativePath === "" ||
-    (!relativePath.startsWith("..") && !path.isAbsolute(relativePath))
-  );
+  return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 }

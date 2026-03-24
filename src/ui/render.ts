@@ -1,5 +1,6 @@
 import React from "react";
 
+import { errSkm, okSkm, toSkmError, unwrapOrThrow, type SkmResult } from "../errors.js";
 import type {
   CliDetail,
   CliListResult,
@@ -32,10 +33,29 @@ export async function renderCliResultWithInk(
   result: CliResult,
   options?: { columns?: number },
 ): Promise<string> {
-  const ink = await loadInk();
-  return ink.renderToString(createResultView(ink, result), {
-    columns: options?.columns,
-  });
+  return unwrapOrThrow(await renderCliResultWithInkResult(result, options));
+}
+
+export async function renderCliResultWithInkResult(
+  result: CliResult,
+  options?: { columns?: number },
+): Promise<SkmResult<string>> {
+  let ink: InkModule;
+  try {
+    ink = await loadInk();
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
+
+  try {
+    return okSkm(
+      ink.renderToString(createResultView(ink, result), {
+        columns: options?.columns,
+      }),
+    );
+  } catch (error) {
+    return errSkm(toSkmError(error));
+  }
 }
 
 function createResultView(ink: InkModule, result: CliResult): React.ReactNode {

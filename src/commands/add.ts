@@ -67,10 +67,7 @@ export async function runAddCommand(options: {
       for (const discoveredSkill of discoveredSkills) {
         const canonicalName = validateCanonicalName(discoveredSkill.canonicalName);
         if (seenCanonicalNames.has(canonicalName)) {
-          throw new SkmError(
-            `Duplicate canonical name discovered: ${canonicalName}`,
-            5,
-          );
+          throw new SkmError(`Duplicate canonical name discovered: ${canonicalName}`, 5);
         }
         seenCanonicalNames.add(canonicalName);
       }
