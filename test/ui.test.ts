@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
-import path from "node:path";
 import test from "node:test";
 
 import type { CliResult } from "../src/output.js";
@@ -9,7 +8,7 @@ import { renderCliResultWithInkResult } from "../src/ui/render.js";
 const compiledTestFilePath = fileURLToPath(import.meta.url);
 
 test("renderCliResultWithInkResult returns ok for a richer summary view", async () => {
-  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+  assert.match(compiledTestFilePath, /[/\\]dist[/\\]test[/\\]/);
   const result: CliResult = {
     kind: "summary",
     command: "add",
@@ -44,7 +43,7 @@ test("renderCliResultWithInkResult returns ok for a richer summary view", async 
 });
 
 test("renderCliResultWithInkResult returns ok for list output with effective state", async () => {
-  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+  assert.match(compiledTestFilePath, /[/\\]dist[/\\]test[/\\]/);
   const result: CliResult = {
     kind: "list",
     all: true,
