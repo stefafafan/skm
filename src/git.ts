@@ -71,13 +71,23 @@ async function resolveCheckoutCommitResult(
     return errSkm(`Invalid git ref: ${ref}`, 3);
   }
 
-  let lastError: SkmError | undefined;
-  for (const candidate of [
+  const [firstCandidate, ...fallbackCandidates] = [
     ref,
     `refs/tags/${ref}`,
     `refs/heads/${ref}`,
     `refs/remotes/origin/${ref}`,
-  ]) {
+  ] as const;
+
+  const firstResult = await runGitResult(
+    ["rev-parse", "--verify", "--end-of-options", `${firstCandidate}^{commit}`],
+    repoDir,
+  );
+  if (firstResult.isOk()) {
+    return okSkm(firstResult.value.trim());
+  }
+
+  let lastError: SkmError = firstResult.error;
+  for (const candidate of fallbackCandidates) {
     const candidateResult = await runGitResult(
       ["rev-parse", "--verify", "--end-of-options", `${candidate}^{commit}`],
       repoDir,
@@ -88,9 +98,5 @@ async function resolveCheckoutCommitResult(
     lastError = candidateResult.error;
   }
 
-  if (lastError) {
-    return errSkm(lastError);
-  }
-
-  return errSkm(`Unable to resolve git ref: ${ref}`, 3);
+  return errSkm(lastError);
 }
