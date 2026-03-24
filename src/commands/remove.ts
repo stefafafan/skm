@@ -1,9 +1,9 @@
-import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name";
-import { SkmError } from "../errors";
-import { removeIfExists } from "../fs";
-import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest";
-import { type CliResult } from "../output";
-import { resolveScope } from "../scope";
+import { resolveCanonicalSkillPath, validateCanonicalName } from "../canonical-name.js";
+import { SkmError } from "../errors.js";
+import { removeIfExists } from "../fs.js";
+import { readLockfile, readManifest, writeLockfile, writeManifest } from "../manifest.js";
+import { type CliResult } from "../output.js";
+import { resolveScope } from "../scope.js";
 
 export async function runRemoveCommand(options: {
   cwd: string;

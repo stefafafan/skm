@@ -1,19 +1,18 @@
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 
-import { validateCanonicalName } from "./canonical-name";
-import cac from "cac";
-import { runAddCommand } from "./commands/add";
-import { runInitCommand } from "./commands/init";
-import { runInspectCommand } from "./commands/inspect";
-import { runInstallCommand } from "./commands/install";
-import { runListCommand } from "./commands/list";
-import { runRenameCommand } from "./commands/rename";
-import { runRemoveCommand } from "./commands/remove";
-import { runUpdateCommand } from "./commands/update";
-import { getErrorMessage, SkmError, isSkmError } from "./errors";
-import { renderCliResultAsText, type CliResult } from "./output";
-import { renderCliResultWithInk } from "./ui/render";
+import { validateCanonicalName } from "./canonical-name.js";
+import { cac } from "cac";
+import { runAddCommand } from "./commands/add.js";
+import { runInitCommand } from "./commands/init.js";
+import { runInspectCommand } from "./commands/inspect.js";
+import { runInstallCommand } from "./commands/install.js";
+import { runListCommand } from "./commands/list.js";
+import { runRenameCommand } from "./commands/rename.js";
+import { runRemoveCommand } from "./commands/remove.js";
+import { runUpdateCommand } from "./commands/update.js";
+import { getErrorMessage, SkmError, isSkmError } from "./errors.js";
+import { renderCliResultAsText, type CliResult } from "./output.js";
+import { renderCliResultWithInk } from "./ui/render.js";
 
 type SharedOptions = {
   help: boolean;
@@ -584,18 +583,18 @@ async function buildVersionResult(): Promise<CliResult> {
 }
 
 let cachedPackageVersion: string | undefined;
+const packageJsonUrl = new URL("../../package.json", import.meta.url);
 
 async function readPackageVersion(): Promise<string> {
   if (cachedPackageVersion) {
     return cachedPackageVersion;
   }
 
-  const packageJsonPath = path.resolve(__dirname, "..", "..", "package.json");
-  const packageJson = JSON.parse(await readFile(packageJsonPath, "utf8")) as {
+  const packageJson = JSON.parse(await readFile(packageJsonUrl, "utf8")) as {
     version?: string;
   };
   if (!packageJson.version) {
-    throw new SkmError(`Missing version in ${packageJsonPath}`, 1);
+    throw new SkmError(`Missing version in ${packageJsonUrl.href}`, 1);
   }
   cachedPackageVersion = packageJson.version;
   return cachedPackageVersion;

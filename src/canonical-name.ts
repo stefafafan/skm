@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { SkmError } from "./errors";
+import { SkmError } from "./errors.js";
 
 export function validateCanonicalName(canonicalName: string): string {
   if (!canonicalName) {

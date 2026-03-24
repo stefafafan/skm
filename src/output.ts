@@ -1,4 +1,4 @@
-import { type ScopeKind } from "./scope";
+import { type ScopeKind } from "./scope.js";
 
 export type CliDetail = {
   label: string;

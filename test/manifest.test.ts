@@ -11,8 +11,8 @@ import {
   readManifest,
   writeLockfile,
   writeManifest,
-} from "../src/manifest";
-import { createTempDir, readJsonFile, writeJsonFile } from "./helpers/fixture";
+} from "../src/manifest.js";
+import { createTempDir, readJsonFile, writeJsonFile } from "./helpers/fixture.js";
 
 test("initManifest writes an empty manifest", async () => {
   const root = await createTempDir("skm-manifest-");

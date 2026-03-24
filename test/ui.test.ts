@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import test from "node:test";
 
-import type { CliResult } from "../src/output";
-import { renderCliResultWithInk } from "../src/ui/render";
+import type { CliResult } from "../src/output.js";
+import { renderCliResultWithInk } from "../src/ui/render.js";
 
-test("renderCliResultWithInk renders a richer summary view for mutating commands", async () => {
+const compiledTestFilePath = fileURLToPath(import.meta.url);
+
+test("renderCliResultWithInk renders the built summary view through the compiled renderer path", async () => {
+  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+
   const result: CliResult = {
     kind: "summary",
     command: "add",
@@ -31,11 +37,14 @@ test("renderCliResultWithInk renders a richer summary view for mutating commands
 
   assert.match(output, /\[ok\] add/i);
   assert.match(output, /scope: project/i);
+  assert.match(output, /Added review-code-quality to project scope/);
   assert.match(output, /review-code-quality/);
   assert.match(output, /58c32674139a663bb3668c4d16b49f1daf3b5af2/);
 });
 
-test("renderCliResultWithInk renders list output with effective state", async () => {
+test("renderCliResultWithInk renders list output through the compiled renderer path", async () => {
+  assert.match(compiledTestFilePath, new RegExp(`\\${path.sep}dist\\${path.sep}test\\${path.sep}`));
+
   const result: CliResult = {
     kind: "list",
     all: true,
@@ -67,4 +76,5 @@ test("renderCliResultWithInk renders list output with effective state", async ()
   assert.match(output, /global/);
   assert.match(output, /active/);
   assert.match(output, /overridden/);
+  assert.match(output, /showing project and global scopes/i);
 });

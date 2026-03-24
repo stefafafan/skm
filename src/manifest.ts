@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { SkmError } from "./errors";
-import { ensureDir, pathExists } from "./fs";
+import { SkmError } from "./errors.js";
+import { ensureDir, pathExists } from "./fs.js";
 
 export type MaterializationStrategy = "wrap" | "link" | "copy";
 export const DEFAULT_OUTPUT_DIR = ".agents/skills";

@@ -6,7 +6,7 @@ import {
   getErrorMessage,
   getErrorStderr,
   getSkmError,
-} from "../src/errors";
+} from "../src/errors.js";
 
 test("getErrorMessage returns the message for Error instances", () => {
   assert.equal(getErrorMessage(new Error("boom")), "boom");

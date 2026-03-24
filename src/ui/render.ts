@@ -6,7 +6,7 @@ import type {
   CliResult,
   CliSkillSummary,
   CliSummaryResult,
-} from "../output";
+} from "../output.js";
 
 type InkComponentProps = {
   children?: React.ReactNode;
@@ -24,12 +24,8 @@ type InkModule = {
   Text: React.ComponentType<InkComponentProps>;
 };
 
-const nativeImport = new Function("specifier", "return import(specifier);") as (
-  specifier: string,
-) => Promise<unknown>;
-
 async function loadInk(): Promise<InkModule> {
-  return nativeImport("ink") as Promise<InkModule>;
+  return (await import("ink")) as InkModule;
 }
 
 export async function renderCliResultWithInk(

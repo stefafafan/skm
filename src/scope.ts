@@ -1,8 +1,8 @@
 import path from "node:path";
 
-import { SkmError } from "./errors";
-import { pathExists } from "./fs";
-import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest";
+import { SkmError } from "./errors.js";
+import { pathExists } from "./fs.js";
+import { DEFAULT_OUTPUT_DIR, readManifest } from "./manifest.js";
 
 export type ScopeKind = "global" | "project";
 
