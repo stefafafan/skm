@@ -118,7 +118,7 @@ export async function createGitHubRepoFixture(
     workspaceRoot,
     commit: git(["rev-parse", "HEAD"], workspaceRoot).trim(),
     updateSkill(contents) {
-      return updateFixtureRepo(workspaceRoot, contents, bareRepo);
+      return updateFixtureRepo(workspaceRoot, contents, bareRepo, defaultBranch);
     },
     async cleanup() {
       await rm(root, { recursive: true, force: true });
@@ -130,6 +130,7 @@ function updateFixtureRepo(
   workspaceRoot: string,
   contents: { skillMd?: string; extraFiles?: Record<string, string> },
   bareRepo: string,
+  defaultBranch: string,
 ): string {
   const skillDir = path.join(workspaceRoot, "skills", "hello-skill");
   if (contents.skillMd !== undefined) {
@@ -145,7 +146,7 @@ function updateFixtureRepo(
 
   git(["add", "."], workspaceRoot);
   git(["commit", "-m", "update skill"], workspaceRoot);
-  git(["push", "origin", "main"], workspaceRoot);
+  git(["push", "origin", defaultBranch], workspaceRoot);
   const nextCommit = git(["rev-parse", "HEAD"], workspaceRoot).trim();
   assert.notEqual(nextCommit, "");
   assert.equal(git(["remote", "get-url", "origin"], workspaceRoot).trim(), bareRepo);
