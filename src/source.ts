@@ -371,6 +371,10 @@ async function resolveRemoteDefaultBranch(
   repoDir: string,
 ): Promise<string | undefined> {
   try {
+    return (await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], repoDir)).trim();
+  } catch {}
+
+  try {
     const remoteHead = await runGit(["ls-remote", "--symref", repoUrl, "HEAD"]);
     const headLine = remoteHead
       .split("\n")
@@ -378,10 +382,6 @@ async function resolveRemoteDefaultBranch(
     if (headLine) {
       return headLine.slice("ref: refs/heads/".length, headLine.length - "\tHEAD".length);
     }
-  } catch {}
-
-  try {
-    return (await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], repoDir)).trim();
   } catch {}
 
   try {
