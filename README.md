@@ -5,6 +5,8 @@
 `skm` is a package manager for [Agent Skills](https://agentskills.io).
 It pins skills to exact commit hashes for reproducible installs and lets teams alias skill names consistently.
 
+Project website: https://getskm.dev/
+
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
 
 > [!WARNING]
