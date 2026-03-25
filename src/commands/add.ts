@@ -80,12 +80,12 @@ export async function runAddCommand(options: {
         const storeDir = await storeSkill(scope.storeDir, discoveredSkill.absoluteDir, integrity);
         const canonicalSource = canonicalTreeUrl(
           parsedSource,
-          requestedRef,
+          checkedOut.requestedRef,
           discoveredSkill.relativeDir,
         );
         manifest.skills[canonicalName] = {
           source: canonicalSource,
-          requested: requestedRef,
+          requested: checkedOut.requestedRef,
           strategy,
         };
         lockfile.skills[canonicalName] = {
@@ -104,7 +104,7 @@ export async function runAddCommand(options: {
           name: canonicalName,
           status: "added",
           source: canonicalSource,
-          requested: requestedRef,
+          requested: checkedOut.requestedRef,
           resolved: checkedOut.resolved,
         });
       }
@@ -118,7 +118,7 @@ export async function runAddCommand(options: {
         summary: `Added ${discoveredSkills.length} skill(s) to ${scope.kind} scope`,
         details: [
           { label: "source", value: options.source },
-          { label: "requested", value: requestedRef },
+          { label: "requested", value: checkedOut.requestedRef },
         ],
         skills: addedSkills,
       };

@@ -6,7 +6,7 @@ import path from "node:path";
 import { validateCanonicalName } from "./canonical-name.js";
 import { fromSkmPromise, fromSkmThrowable, SkmError, type SkmResultAsync } from "./errors.js";
 import { assertRegularFile, copyDirectory, removeIfExists } from "./fs.js";
-import { cloneAndCheckout, readHeadCommit, runGit } from "./git.js";
+import { readHeadCommit, runGit } from "./git.js";
 
 export type GithubTreeSource = {
   kind: "github-tree";
@@ -47,6 +47,7 @@ export type FetchedSkill = {
 export type CheckedOutRepo = {
   checkoutDir: string;
   resolved: string;
+  requestedRef: string;
 };
 
 export type DiscoveredSkill = {
@@ -160,14 +161,29 @@ export async function checkoutSourceRepo(
       throw new SkmError(`Unable to resolve git ref: ${checkoutRef}`, 3);
     }
     await runGit(["checkout", "--quiet", "--detach", resolvedCommit], checkoutDir);
+    return {
+      checkoutDir,
+      resolved: await readHeadCommit(checkoutDir),
+      requestedRef: resolvedTreeSource.ref,
+    };
   } else {
-    await cloneAndCheckout(repoUrl, options.requestedRef, checkoutDir);
+    await runGit(["clone", "--quiet", "--no-checkout", repoUrl, checkoutDir]);
+    const requestedRef =
+      options.requestedRefExplicit || isFixedRef(options.requestedRef)
+        ? options.requestedRef
+        : ((await resolveRemoteDefaultBranch(repoUrl, checkoutDir)) ?? options.requestedRef);
+    const checkoutRef = options.checkoutRef ?? requestedRef;
+    const resolvedCommit = await resolveGitCommit(checkoutDir, checkoutRef);
+    if (!resolvedCommit) {
+      throw new SkmError(`Unable to resolve git ref: ${checkoutRef}`, 3);
+    }
+    await runGit(["checkout", "--quiet", "--detach", resolvedCommit], checkoutDir);
+    return {
+      checkoutDir,
+      resolved: await readHeadCommit(checkoutDir),
+      requestedRef,
+    };
   }
-
-  return {
-    checkoutDir,
-    resolved: await readHeadCommit(checkoutDir),
-  };
 }
 
 export async function discoverSkillsInRepo(repoDir: string): Promise<DiscoveredSkill[]> {
@@ -348,6 +364,34 @@ async function resolveGitCommit(repoDir: string, ref: string): Promise<string | 
     }
   }
   return undefined;
+}
+
+async function resolveRemoteDefaultBranch(
+  repoUrl: string,
+  repoDir: string,
+): Promise<string | undefined> {
+  try {
+    return (await runGit(["symbolic-ref", "--quiet", "--short", "HEAD"], repoDir)).trim();
+  } catch {}
+
+  try {
+    const remoteHead = await runGit(["ls-remote", "--symref", repoUrl, "HEAD"]);
+    const headLine = remoteHead
+      .split("\n")
+      .find((line) => line.startsWith("ref: refs/heads/") && line.endsWith("\tHEAD"));
+    if (headLine) {
+      return headLine.slice("ref: refs/heads/".length, headLine.length - "\tHEAD".length);
+    }
+  } catch {}
+
+  try {
+    const symbolicRef = (
+      await runGit(["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"], repoDir)
+    ).trim();
+    return symbolicRef.startsWith("origin/") ? symbolicRef.slice("origin/".length) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function resolveRequestedRefExplicit(options: FetchSkillOptions): boolean {

@@ -83,7 +83,11 @@ export async function createSkillRepoFixture(): Promise<SkillRepoFixture> {
   ]);
 }
 
-export async function createGitHubRepoFixture(skills: RepoSkillFile[]): Promise<SkillRepoFixture> {
+export async function createGitHubRepoFixture(
+  skills: RepoSkillFile[],
+  options?: { defaultBranch?: string },
+): Promise<SkillRepoFixture> {
+  const defaultBranch = options?.defaultBranch ?? "main";
   const root = await createTempDir("skm-repo-");
   const workspaceRoot = path.join(root, "workspace");
   const remoteRoot = path.join(root, "remotes");
@@ -99,21 +103,22 @@ export async function createGitHubRepoFixture(skills: RepoSkillFile[]): Promise<
     }
   }
 
-  git(["init", "-b", "main"], workspaceRoot);
+  git(["init", "-b", defaultBranch], workspaceRoot);
   git(["config", "user.name", "cat"], workspaceRoot);
   git(["config", "user.email", "cat@example.com"], workspaceRoot);
   git(["add", "."], workspaceRoot);
   git(["commit", "-m", "initial"], workspaceRoot);
   git(["init", "--bare", bareRepo], root);
+  git(["symbolic-ref", "HEAD", `refs/heads/${defaultBranch}`], bareRepo);
   git(["remote", "add", "origin", bareRepo], workspaceRoot);
-  git(["push", "-u", "origin", "main"], workspaceRoot);
+  git(["push", "-u", "origin", defaultBranch], workspaceRoot);
 
   return {
     remoteRoot,
     workspaceRoot,
     commit: git(["rev-parse", "HEAD"], workspaceRoot).trim(),
     updateSkill(contents) {
-      return updateFixtureRepo(workspaceRoot, contents, bareRepo);
+      return updateFixtureRepo(workspaceRoot, contents, bareRepo, defaultBranch);
     },
     async cleanup() {
       await rm(root, { recursive: true, force: true });
@@ -125,6 +130,7 @@ function updateFixtureRepo(
   workspaceRoot: string,
   contents: { skillMd?: string; extraFiles?: Record<string, string> },
   bareRepo: string,
+  defaultBranch: string,
 ): string {
   const skillDir = path.join(workspaceRoot, "skills", "hello-skill");
   if (contents.skillMd !== undefined) {
@@ -140,7 +146,7 @@ function updateFixtureRepo(
 
   git(["add", "."], workspaceRoot);
   git(["commit", "-m", "update skill"], workspaceRoot);
-  git(["push", "origin", "main"], workspaceRoot);
+  git(["push", "origin", defaultBranch], workspaceRoot);
   const nextCommit = git(["rev-parse", "HEAD"], workspaceRoot).trim();
   assert.notEqual(nextCommit, "");
   assert.equal(git(["remote", "get-url", "origin"], workspaceRoot).trim(), bareRepo);

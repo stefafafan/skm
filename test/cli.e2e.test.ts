@@ -607,6 +607,43 @@ test("skm add persists canonical tree URLs from SKM_GITHUB_BASE_URL for repo-wid
   await fixture.cleanup();
 });
 
+test("skm add imports repo-wide skills from the remote default branch when it is not main", async () => {
+  const root = await createTempDir("skm-cli-");
+  const workspace = path.join(root, "project");
+  const home = path.join(root, "home");
+  const fixture = await createGitHubRepoFixture(
+    [
+      {
+        path: "skills/hello-skill",
+        skillMd: ["---", "name: hello", "description: hello", "---", "", "# Hello", ""].join("\n"),
+      },
+    ],
+    { defaultBranch: "master" },
+  );
+  await mkdir(workspace, { recursive: true });
+
+  assert.equal(runCli(["init", "--project"], { cwd: workspace, env: { HOME: home } }).code, 0);
+  const result = runCli(["add", "example/skills", "--project"], {
+    cwd: workspace,
+    env: {
+      HOME: home,
+      SKM_GITHUB_BASE_URL: fixture.remoteRoot,
+      SKM_GITHUB_URL_BASE: "https://example.com",
+    },
+  });
+
+  assert.equal(result.code, 0, result.stderr);
+  const manifest = await readJsonFile<{
+    skills: Record<string, { source: string; requested: string }>;
+  }>(path.join(workspace, "skills.json"));
+  assert.equal(
+    manifest.skills["hello-skill"]?.source,
+    "https://example.com/example/skills/tree/master/skills/hello-skill",
+  );
+  assert.equal(manifest.skills["hello-skill"]?.requested, "master");
+  await fixture.cleanup();
+});
+
 test("skm add imports every discovered skill from a GitHub repo URL", async () => {
   const root = await createTempDir("skm-cli-");
   const workspace = path.join(root, "project");
