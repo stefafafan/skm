@@ -265,10 +265,13 @@ function parseHttpsGitHubSource(input: string): ParsedSource | undefined {
 }
 
 function resolveCanonicalGithubBaseUrl(source: GithubRepoSource | GithubTreeSource): string {
-  return (source.urlBase ?? process.env.SKM_GITHUB_URL_BASE ?? "https://github.com").replace(
-    /\/$/,
-    "",
-  );
+  const configuredCloneBaseUrl = process.env.SKM_GITHUB_BASE_URL;
+  const fallbackBaseUrl =
+    configuredCloneBaseUrl && configuredCloneBaseUrl.includes("://")
+      ? configuredCloneBaseUrl
+      : "https://github.com";
+
+  return (source.urlBase ?? process.env.SKM_GITHUB_URL_BASE ?? fallbackBaseUrl).replace(/\/$/, "");
 }
 
 async function resolveTreeSourceLocation(
