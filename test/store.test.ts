@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { storePathResult } from "../src/store.js";
+import { storePathResult } from "../src/storage/store-skill.js";
 
 test("storePathResult returns ok for a valid integrity value", () => {
   const result = storePathResult("/tmp/skm-store", "sha256-deadbeef");
@@ -16,4 +16,9 @@ test("storePathResult returns an err for a traversing integrity value", () => {
   assert.equal(result.isErr(), true);
   assert.match(result._unsafeUnwrapErr().message, /invalid integrity value/i);
   assert.equal(result._unsafeUnwrapErr().exitCode, 2);
+});
+
+test("storePathResult rejects traversing integrity values", async () => {
+  const { storePathResult: seamStorePathResult } = await import("../src/storage/store-skill.js");
+  assert.equal(seamStorePathResult("/tmp/store", "../escape").isErr(), true);
 });
