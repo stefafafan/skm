@@ -10,7 +10,7 @@ import {
   getErrorStderr,
   getSkmError,
   toSkmError,
-} from "../src/errors.js";
+} from "../src/shared/errors.js";
 
 test("getErrorMessage returns the message for Error instances", () => {
   assert.equal(getErrorMessage(new Error("boom")), "boom");

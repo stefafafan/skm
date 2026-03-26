@@ -3,8 +3,8 @@ import test from "node:test";
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
 
-import { SkmError } from "../src/errors.js";
-import { resolveScope, resolveScopeResult } from "../src/scope.js";
+import { SkmError } from "../src/shared/errors.js";
+import { resolveScope, resolveScopeResult } from "../src/scope/resolve-scope.js";
 import { createTempDir, writeJsonFile } from "./helpers/fixture.js";
 
 test("resolveScope defaults to project scope when an ancestor skills.json exists", async () => {
@@ -83,6 +83,11 @@ test("resolveScope rejects an absolute project outputDir", async () => {
     }),
     /Project manifest outputDir must be a relative path inside the project root/,
   );
+});
+
+test("resolveProjectOutputDir rejects absolute project output directories", async () => {
+  const { resolveProjectOutputDir } = await import("../src/scope/resolve-scope.js");
+  assert.throws(() => resolveProjectOutputDir("/repo", "/tmp/out"), /relative path/);
 });
 
 test("resolveScope rejects a project outputDir that escapes the project root", async () => {
