@@ -1,6 +1,6 @@
 {
   "name": "@stefafafan/skm",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "description": "A package manager for AI Agent Skills. Reproducible installs and consistent naming for teams.",
   "keywords": [
