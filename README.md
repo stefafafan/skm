@@ -1,6 +1,7 @@
 # skm - A package manager for Agent Skills
 
-<a href="https://www.npmjs.com/package/@stefafafan/skm"><img alt="NPM Version" src="https://img.shields.io/npm/v/%40stefafafan%2Fskm"></a>
+> [!CAUTION]
+> This package is deprecated and no longer maintained. Check out [microsoft/apm](https://github.com/microsoft/apm) or [gh skill](https://cli.github.com/manual/gh_skill) for alternatives.
 
 `skm` is a package manager for [Agent Skills](https://agentskills.io).
 It pins skills to exact commit hashes for reproducible installs and lets teams alias skill names consistently.
@@ -8,9 +9,6 @@ It pins skills to exact commit hashes for reproducible installs and lets teams a
 Project website: https://getskm.dev/
 
 See [stefafafan/skm-demo](https://github.com/stefafafan/skm-demo) for real examples of how `skm` is used in a project.
-
-> [!WARNING]
-> This package is in beta. There may be breaking changes.
 
 ![skm demo](demo.gif)
 
